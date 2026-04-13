@@ -32,8 +32,8 @@ import { motion, AnimatePresence, useScroll, useSpring } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { MOCK_ARTICLES } from './constants';
-import { Article, Comment } from './types';
+import { MOCK_ARTICLES, MOCK_EVENTS } from './constants';
+import { Article, Comment, Event } from './types';
 import { cn } from './lib/utils';
 
 // --- Components ---
@@ -81,12 +81,14 @@ const HeroSlideshow = ({ articles, onArticleClick }: { articles: Article[]; onAr
           className="absolute inset-0 cursor-pointer"
           onClick={() => onArticleClick(articles[currentIndex])}
         >
-          <img 
-            src={articles[currentIndex].image} 
-            alt={articles[currentIndex].title}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-          />
+          {articles[currentIndex].image && (
+            <img 
+              src={articles[currentIndex].image} 
+              alt={articles[currentIndex].title}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
           <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full md:w-3/4">
             <Badge category={articles[currentIndex].category}>{articles[currentIndex].category}</Badge>
@@ -165,14 +167,16 @@ const ArticleCard = ({ article, onClick, variant = 'horizontal' }: { article: Ar
       <motion.div 
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className="relative h-[240px] w-full rounded-2xl overflow-hidden shadow-xl cursor-pointer group"
+        className="relative h-[240px] w-full rounded-2xl overflow-hidden shadow-xl cursor-pointer group bg-slate-100"
       >
-        <img 
-          src={article.image} 
-          alt={article.title}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          referrerPolicy="no-referrer"
-        />
+        {article.image && (
+          <img 
+            src={article.image} 
+            alt={article.title}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            referrerPolicy="no-referrer"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 p-4 w-full">
           <Badge category={article.category}>{article.category}</Badge>
@@ -198,17 +202,19 @@ const ArticleCard = ({ article, onClick, variant = 'horizontal' }: { article: Ar
         variant === 'vertical' ? 'flex-col' : 'flex-row'
       )}
     >
-      <div className={cn(
-        "relative",
-        variant === 'vertical' ? 'w-full h-40' : 'w-24 h-24 shrink-0'
-      )}>
-        <img 
-          src={article.image} 
-          alt={article.title}
-          className="w-full h-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      </div>
+      {article.image && (
+        <div className={cn(
+          "relative",
+          variant === 'vertical' ? 'w-full h-40' : 'w-24 h-24 shrink-0'
+        )}>
+          <img 
+            src={article.image} 
+            alt={article.title}
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      )}
       <div className="p-3 flex flex-col justify-between flex-1">
         <div>
           <div className="flex justify-between items-start mb-1">
@@ -313,6 +319,127 @@ const ArticleCarousel = ({ articles, onArticleClick }: { articles: Article[], on
   );
 };
 
+const EventSection = ({ events, onEventClick }: { events: Event[], onEventClick: (e: Event) => void }) => {
+  return (
+    <section className="py-20 border-t border-slate-100">
+      <div className="flex items-center justify-between mb-10">
+        <div>
+          <h2 className="font-black text-3xl md:text-4xl tracking-tighter">Agenda Culturel</h2>
+          <p className="text-slate-500 mt-2">Les événements à ne pas manquer</p>
+        </div>
+        <button className="text-primary font-bold flex items-center gap-2 group">
+          Voir tout l'agenda <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {events.map((event) => (
+          <motion.div 
+            key={event.id}
+            whileHover={{ y: -10 }}
+            onClick={() => onEventClick(event)}
+            className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 cursor-pointer group"
+          >
+            <div className="aspect-[4/5] relative overflow-hidden bg-slate-100">
+              {event.image && (
+                <img 
+                  src={event.image} 
+                  alt={event.title} 
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4">
+                <span className="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest mb-2 inline-block">
+                  {event.category}
+                </span>
+                <h3 className="text-white font-bold text-lg leading-tight">{event.title}</h3>
+              </div>
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-bold">
+                <Calendar size={14} className="text-primary" />
+                {format(new Date(event.date), 'dd MMM yyyy', { locale: fr })}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-bold">
+                <Map size={14} className="text-primary" />
+                {event.location}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
+const EventDetailView = ({ event, onBack }: { event: Event, onBack: () => void }) => {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="max-w-4xl mx-auto space-y-8"
+    >
+      <button onClick={onBack} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
+        <ArrowLeft size={14} /> Retour
+      </button>
+      
+      <div className="space-y-4 text-center">
+        <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+          {event.category}
+        </span>
+        <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-tight">
+          {event.title}
+        </h1>
+        <div className="flex items-center justify-center gap-6 text-sm text-slate-500 font-bold">
+          <div className="flex items-center gap-2">
+            <Calendar size={18} className="text-primary" />
+            {format(new Date(event.date), 'dd MMMM yyyy', { locale: fr })}
+          </div>
+          <div className="flex items-center gap-2">
+            <Map size={18} className="text-primary" />
+            {event.location}
+          </div>
+        </div>
+      </div>
+
+      {(event.image || event.video) && (
+        <div className="space-y-6">
+          {event.video && (
+            <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5 aspect-video">
+              <iframe 
+                src={`https://www.youtube.com/embed/${event.video.split('v=')[1]?.split('&')[0] || event.video.split('/').pop()}`}
+                title={event.title}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              />
+            </div>
+          )}
+          {event.image && (
+            <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5">
+              <img 
+                src={event.image} 
+                alt={event.title}
+                className="w-full h-auto max-h-[80vh] object-contain mx-auto block"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-slate-100">
+        <div className="markdown-body text-lg leading-relaxed">
+          <ReactMarkdown>{event.content}</ReactMarkdown>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 const GoogleAd = ({ className, label = "Annonce Google" }: { className?: string, label?: string }) => (
   <div className={cn("bg-slate-100 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden group min-h-[100px]", className)}>
     <div className="absolute top-0 right-0 bg-slate-200 px-2 py-0.5 text-[8px] font-bold text-slate-500 uppercase">Ad</div>
@@ -393,8 +520,9 @@ const FlashInfo = ({ articles }: { articles: string[] }) => {
 // --- Main App ---
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'category' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'category' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event'>('home');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeCategory, setActiveCategory] = useState('À la une');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -591,6 +719,13 @@ export default function App() {
     window.scrollTo(0, 0);
   };
 
+  const handleEventClick = (event: Event) => {
+    setSelectedEvent(event);
+    setCurrentView('event');
+    setIsMenuOpen(false);
+    window.scrollTo(0, 0);
+  };
+
   const handleCategoryClick = (cat: string) => {
     setActiveCategory(cat);
     setCurrentView('home');
@@ -602,11 +737,18 @@ export default function App() {
   const navigateTo = (view: typeof currentView) => {
     setCurrentView(view);
     setSelectedArticle(null);
+    setSelectedEvent(null);
     setIsMenuOpen(false);
     window.scrollTo(0, 0);
   };
 
-  const goHome = () => navigateTo('home');
+  const goHome = () => {
+    setCurrentView('home');
+    setSelectedArticle(null);
+    setSelectedEvent(null);
+    setIsMenuOpen(false);
+    window.scrollTo(0, 0);
+  };
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -971,7 +1113,17 @@ export default function App() {
                   <button className="bg-blue-500 text-white px-6 py-2 rounded-full text-[10px] font-bold">En savoir plus</button>
                 </div>
               </section>
+
+              <EventSection 
+                events={MOCK_EVENTS} 
+                onEventClick={handleEventClick} 
+              />
             </motion.div>
+          ) : currentView === 'event' && selectedEvent ? (
+            <EventDetailView 
+              event={selectedEvent} 
+              onBack={goHome} 
+            />
           ) : currentView === 'article' && selectedArticle ? (
             <motion.div 
               key="article"
@@ -1018,14 +1170,31 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5">
-                <img 
-                  src={selectedArticle.image} 
-                  alt={selectedArticle.title}
-                  className="w-full h-auto max-h-[80vh] object-contain mx-auto block"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
+              {(selectedArticle.image || selectedArticle.video) && (
+                <div className="space-y-6">
+                  {selectedArticle.video && (
+                    <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5 aspect-video">
+                      <iframe 
+                        src={`https://www.youtube.com/embed/${selectedArticle.video.split('v=')[1]?.split('&')[0] || selectedArticle.video.split('/').pop()}`}
+                        title={selectedArticle.title}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
+                  {selectedArticle.image && (
+                    <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5">
+                      <img 
+                        src={selectedArticle.image} 
+                        alt={selectedArticle.title}
+                        className="w-full h-auto max-h-[80vh] object-contain mx-auto block"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-10">
                 <div className="space-y-8">

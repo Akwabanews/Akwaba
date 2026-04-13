@@ -4,7 +4,8 @@ export interface Article {
   title: string;
   date: string;
   category: 'Afrique' | 'Monde' | 'Économie' | 'Politique' | 'Tech' | 'Culture' | 'Urgent';
-  image: string;
+  image?: string;
+  video?: string;
   author: string;
   authorRole?: string;
   excerpt: string;
@@ -23,4 +24,17 @@ export interface Comment {
   content: string;
   likes: number;
   replies: Comment[];
+}
+
+export interface Event {
+  id: string;
+  slug: string;
+  title: string;
+  date: string;
+  location: string;
+  category: string;
+  image?: string;
+  video?: string;
+  excerpt: string;
+  content: string;
 }
