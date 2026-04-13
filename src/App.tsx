@@ -7,6 +7,7 @@ import {
   Clock, 
   Eye, 
   ChevronRight, 
+  ChevronLeft,
   ArrowLeft,
   Home,
   Globe,
@@ -242,6 +243,76 @@ const ArticleCard = ({ article, onClick, variant = 'horizontal' }: { article: Ar
   );
 };
 
+const ArticleCarousel = ({ articles, onArticleClick }: { articles: Article[], onArticleClick: (a: Article) => void }) => {
+  const [scrollIndex, setScrollIndex] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(4);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 640) setItemsPerPage(1);
+      else if (window.innerWidth < 1024) setItemsPerPage(2);
+      else setItemsPerPage(4);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const maxIndex = Math.max(0, articles.length - itemsPerPage);
+  const next = () => setScrollIndex(prev => Math.min(prev + 1, maxIndex));
+  const prev = () => setScrollIndex(prev => Math.max(prev - 1, 0));
+
+  return (
+    <div className="mt-16 space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-2xl font-black">Continuer la lecture</h3>
+        <div className="flex gap-2">
+          <button 
+            onClick={prev} 
+            disabled={scrollIndex === 0}
+            className="p-2 rounded-full bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button 
+            onClick={next} 
+            disabled={scrollIndex === maxIndex}
+            className="p-2 rounded-full bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      </div>
+      
+      <div className="overflow-hidden -mx-4 px-4">
+        <motion.div 
+          animate={{ x: `-${scrollIndex * (100 / itemsPerPage)}%` }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="flex gap-6"
+        >
+          {articles.map((article) => (
+            <div 
+              key={article.id} 
+              className={cn(
+                "shrink-0",
+                itemsPerPage === 1 ? "w-full" : 
+                itemsPerPage === 2 ? "w-[calc(50%-12px)]" : 
+                "w-[calc(25%-18px)]"
+              )}
+            >
+              <ArticleCard 
+                article={article} 
+                variant="vertical" 
+                onClick={() => onArticleClick(article)} 
+              />
+            </div>
+          ))}
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
 const GoogleAd = ({ className, label = "Annonce Google" }: { className?: string, label?: string }) => (
   <div className={cn("bg-slate-100 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden group min-h-[100px]", className)}>
     <div className="absolute top-0 right-0 bg-slate-200 px-2 py-0.5 text-[8px] font-bold text-slate-500 uppercase">Ad</div>
@@ -342,6 +413,126 @@ export default function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [activeNotification, setActiveNotification] = useState<string | null>(null);
+  
+  // Persistence Logic
+  const [articleComments, setArticleComments] = useState<Record<string, Comment[]>>(() => {
+    const saved = localStorage.getItem('akwaba_comments');
+    return saved ? JSON.parse(saved) : {};
+  });
+  
+  const [articleLikes, setArticleLikes] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem('akwaba_likes');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [userLikedArticles, setUserLikedArticles] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('akwaba_user_likes');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [replyingTo, setReplyingTo] = useState<{ commentId: string, username: string } | null>(null);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [commentAuthorName, setCommentAuthorName] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('akwaba_comments', JSON.stringify(articleComments));
+  }, [articleComments]);
+
+  useEffect(() => {
+    localStorage.setItem('akwaba_likes', JSON.stringify(articleLikes));
+  }, [articleLikes]);
+
+  useEffect(() => {
+    localStorage.setItem('akwaba_user_likes', JSON.stringify(Array.from(userLikedArticles)));
+  }, [userLikedArticles]);
+
+  const handleAddComment = (articleId: string, parentCommentId?: string) => {
+    if (!newCommentText.trim() || !commentAuthorName.trim()) return;
+
+    const newComment: Comment = {
+      id: Date.now().toString(),
+      username: commentAuthorName,
+      date: new Date().toISOString(),
+      content: newCommentText,
+      likes: 0,
+      replies: [],
+    };
+
+    setArticleComments(prev => {
+      const currentComments = [...(prev[articleId] || [])];
+      
+      if (parentCommentId && parentCommentId !== 'mock') {
+        // Find parent and add reply
+        const addReply = (comments: Comment[]): Comment[] => {
+          return comments.map(c => {
+            if (c.id === parentCommentId) {
+              return { ...c, replies: [...c.replies, newComment] };
+            }
+            if (c.replies.length > 0) {
+              return { ...c, replies: addReply(c.replies) };
+            }
+            return c;
+          });
+        };
+        return { ...prev, [articleId]: addReply(currentComments) };
+      }
+
+      return { ...prev, [articleId]: [newComment, ...currentComments] };
+    });
+
+    setNewCommentText('');
+    setReplyingTo(null);
+    setActiveNotification("Votre message a été publié !");
+    setTimeout(() => setActiveNotification(null), 3000);
+  };
+
+  const handleLikeArticle = (articleId: string) => {
+    if (userLikedArticles.has(articleId)) {
+      setUserLikedArticles(prev => {
+        const next = new Set(prev);
+        next.delete(articleId);
+        return next;
+      });
+      setArticleLikes(prev => ({
+        ...prev,
+        [articleId]: (prev[articleId] || 0) - 1
+      }));
+    } else {
+      setUserLikedArticles(prev => new Set(prev).add(articleId));
+      setArticleLikes(prev => ({
+        ...prev,
+        [articleId]: (prev[articleId] || 0) + 1
+      }));
+      setActiveNotification("Vous avez aimé cet article !");
+      setTimeout(() => setActiveNotification(null), 2000);
+    }
+  };
+
+  const handleLikeComment = (articleId: string, commentId: string) => {
+    setArticleComments(prev => {
+      const updateLikes = (comments: Comment[]): Comment[] => {
+        return comments.map(c => {
+          if (c.id === commentId) {
+            return { ...c, likes: c.likes + 1 };
+          }
+          if (c.replies.length > 0) {
+            return { ...c, replies: updateLikes(c.replies) };
+          }
+          return c;
+        });
+      };
+      return { ...prev, [articleId]: updateLikes(prev[articleId] || []) };
+    });
+  };
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail) return;
+    setActiveNotification("Merci ! Vous êtes maintenant inscrit à la newsletter.");
+    setNewsletterEmail('');
+    setTimeout(() => setActiveNotification(null), 5000);
+  };
 
   useEffect(() => {
     const consent = localStorage.getItem('cookie-consent');
@@ -440,8 +631,13 @@ export default function App() {
       return diffInHours <= 48; // Last 48 hours
     })
     .sort((a, b) => {
-      const scoreA = (a.views || 0) + (a.likes || 0) * 2 + (a.commentsCount || 0) * 5;
-      const scoreB = (b.views || 0) + (b.likes || 0) * 2 + (b.commentsCount || 0) * 5;
+      const likesA = (a.likes || 0) + (articleLikes[a.id] || 0);
+      const likesB = (b.likes || 0) + (articleLikes[b.id] || 0);
+      const commentsA = (a.commentsCount || 0) + (articleComments[a.id]?.length || 0);
+      const commentsB = (b.commentsCount || 0) + (articleComments[b.id]?.length || 0);
+      
+      const scoreA = (a.views || 0) + likesA * 2 + commentsA * 5;
+      const scoreB = (b.views || 0) + likesB * 2 + commentsB * 5;
       return scoreB - scoreA;
     })
     .slice(0, 6);
@@ -749,19 +945,22 @@ export default function App() {
 
               {/* Newsletter & Ad */}
               <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-primary/10 rounded-3xl p-8 space-y-4 border border-primary/20">
+                  <div className="bg-primary/10 rounded-3xl p-8 space-y-4 border border-primary/20">
                   <h3 className="font-black text-2xl text-primary">La Newsletter Akwaba</h3>
                   <p className="text-slate-600">Rejoignez plus de 50,000 lecteurs et recevez l'essentiel de l'actualité africaine.</p>
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <form onSubmit={handleNewsletterSubmit} className="flex flex-col sm:flex-row gap-3">
                     <input 
                       type="email" 
+                      required
+                      value={newsletterEmail}
+                      onChange={(e) => setNewsletterEmail(e.target.value)}
                       placeholder="votre@email.com" 
                       className="flex-1 bg-white rounded-xl px-4 py-3 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
-                    <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
+                    <button type="submit" className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
                       S'abonner
                     </button>
-                  </div>
+                  </form>
                 </div>
                 <div className="bg-slate-100 border border-slate-200 rounded-3xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
                   <div className="absolute top-0 right-0 bg-slate-200 px-2 py-1 text-[8px] font-bold text-slate-500 uppercase">Ad</div>
@@ -869,17 +1068,26 @@ export default function App() {
                   {/* Engagement */}
                   <div className="mt-12 pt-8 border-t border-slate-100 flex flex-wrap items-center justify-between gap-6">
                     <div className="flex items-center gap-6">
-                      <button className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group">
-                        <div className="p-3 rounded-full bg-slate-100 group-hover:bg-primary/10 transition-colors">
-                          <Heart size={24} />
+                      <button 
+                        onClick={() => handleLikeArticle(selectedArticle.id)}
+                        className={cn(
+                          "flex items-center gap-2 transition-colors group",
+                          userLikedArticles.has(selectedArticle.id) ? "text-red-500" : "text-slate-500 hover:text-primary"
+                        )}
+                      >
+                        <div className={cn(
+                          "p-3 rounded-full transition-colors",
+                          userLikedArticles.has(selectedArticle.id) ? "bg-red-50" : "bg-slate-100 group-hover:bg-primary/10"
+                        )}>
+                          <Heart size={24} fill={userLikedArticles.has(selectedArticle.id) ? "currentColor" : "none"} />
                         </div>
-                        <span className="font-bold">{selectedArticle.likes}</span>
+                        <span className="font-bold">{(selectedArticle.likes || 0) + (articleLikes[selectedArticle.id] || 0)}</span>
                       </button>
                       <button className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group">
                         <div className="p-3 rounded-full bg-slate-100 group-hover:bg-primary/10 transition-colors">
                           <MessageSquare size={24} />
                         </div>
-                        <span className="font-bold">24</span>
+                        <span className="font-bold">{(selectedArticle.commentsCount || 0) + (articleComments[selectedArticle.id]?.length || 0)}</span>
                       </button>
                     </div>
                     <div className="flex items-center gap-3">
@@ -904,28 +1112,122 @@ export default function App() {
                       Les commentaires sont modérés avant publication.
                     </p>
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-6">
-                      <div className="flex gap-4">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
-                        <div className="flex-1 space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="font-bold">Jean-Marc Koffi</span>
-                            <span className="text-xs text-slate-400">Il y a 1 jour</span>
+                      {/* Recursive Comment Component */}
+                      {(() => {
+                        const renderComments = (comments: Comment[], isReply = false) => {
+                          if (comments.length === 0 && !isReply) {
+                            return (
+                              <div className="flex gap-4 opacity-50">
+                                <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-bold">Jean-Marc Koffi</span>
+                                    <span className="text-xs text-slate-400">Exemple</span>
+                                  </div>
+                                  <p className="text-slate-600">Analyse très pertinente. Le potentiel est là, il manque juste l'accompagnement politique.</p>
+                                  <button 
+                                    onClick={() => {
+                                      setReplyingTo({ commentId: 'mock', username: 'Jean-Marc Koffi' });
+                                      document.getElementById('comment-form')?.scrollIntoView({ behavior: 'smooth' });
+                                    }}
+                                    className="text-xs font-bold text-primary hover:underline"
+                                  >
+                                    Répondre
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return comments.map((comment) => (
+                            <div key={comment.id} className={cn("space-y-4", isReply && "ml-10 mt-4")}>
+                              <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex gap-4"
+                              >
+                                <div className={cn(
+                                  "w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0",
+                                  isReply ? "bg-slate-100 text-slate-400 w-8 h-8 text-xs" : "bg-primary/10 text-primary"
+                                )}>
+                                  {comment.username[0].toUpperCase()}
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-bold text-sm">{comment.username}</span>
+                                    <span className="text-[10px] text-slate-400">
+                                      {format(new Date(comment.date), 'dd MMM yyyy HH:mm', { locale: fr })}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-slate-600 leading-relaxed">{comment.content}</p>
+                                  <div className="flex items-center gap-4">
+                                    <button 
+                                      onClick={() => {
+                                        setReplyingTo({ commentId: comment.id, username: comment.username });
+                                        document.getElementById('comment-form')?.scrollIntoView({ behavior: 'smooth' });
+                                      }}
+                                      className="text-xs font-bold text-primary hover:underline"
+                                    >
+                                      Répondre
+                                    </button>
+                                    <button 
+                                      onClick={() => handleLikeComment(selectedArticle.id, comment.id)}
+                                      className="text-xs font-bold text-slate-400 flex items-center gap-1 hover:text-red-500 transition-colors"
+                                    >
+                                      <Heart size={12} /> {comment.likes}
+                                    </button>
+                                  </div>
+                                </div>
+                              </motion.div>
+                              {comment.replies && comment.replies.length > 0 && (
+                                <div className="border-l-2 border-slate-50">
+                                  {renderComments(comment.replies, true)}
+                                </div>
+                              )}
+                            </div>
+                          ));
+                        };
+                        return renderComments(articleComments[selectedArticle.id] || []);
+                      })()}
+
+                      {/* Comment Form */}
+                      <div id="comment-form" className="pt-6 border-t border-slate-100 space-y-4">
+                        {replyingTo && (
+                          <div className="flex items-center justify-between bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                            <span className="text-xs text-slate-500">
+                              En réponse à <span className="font-bold text-primary">@{replyingTo.username}</span>
+                            </span>
+                            <button onClick={() => setReplyingTo(null)} className="text-slate-400 hover:text-slate-600">
+                              <X size={14} />
+                            </button>
                           </div>
-                          <p className="text-slate-600">Analyse très pertinente. Le potentiel est là, il manque juste l'accompagnement politique.</p>
-                          <button className="text-xs font-bold text-primary">Répondre</button>
+                        )}
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex-1 relative">
+                            <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input 
+                              type="text" 
+                              placeholder="Votre nom..." 
+                              value={commentAuthorName}
+                              onChange={(e) => setCommentAuthorName(e.target.value)}
+                              className="w-full bg-slate-50 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <div className="pt-4 border-t border-slate-50">
-                        <div className="flex gap-3 items-center">
-                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                            <User size={20} />
-                          </div>
-                          <input 
-                            type="text" 
-                            placeholder="Ajouter un commentaire..." 
-                            className="flex-1 bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        <div className="flex gap-3 items-end">
+                          <textarea 
+                            placeholder={replyingTo ? `Répondre à ${replyingTo.username}...` : "Ajouter un commentaire..."}
+                            value={newCommentText}
+                            onChange={(e) => setNewCommentText(e.target.value)}
+                            rows={2}
+                            className="flex-1 bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                           />
-                          <button className="bg-primary text-white p-3 rounded-xl"><Send size={20} /></button>
+                          <button 
+                            onClick={() => handleAddComment(selectedArticle.id, replyingTo?.commentId)}
+                            disabled={!newCommentText.trim() || !commentAuthorName.trim()}
+                            className="bg-primary text-white p-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+                          >
+                            <Send size={20} />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -950,6 +1252,11 @@ export default function App() {
                   </div>
                 </aside>
               </div>
+
+              <ArticleCarousel 
+                articles={MOCK_ARTICLES.filter(a => a.id !== selectedArticle.id)}
+                onArticleClick={handleArticleClick}
+              />
             </motion.div>
           ) : currentView === 'search' ? (
             <motion.div 

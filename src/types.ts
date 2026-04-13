@@ -21,5 +21,6 @@ export interface Comment {
   username: string;
   date: string;
   content: string;
-  replies?: Comment[];
+  likes: number;
+  replies: Comment[];
 }
