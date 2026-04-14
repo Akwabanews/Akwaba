@@ -47,6 +47,10 @@ const Badge = ({ children, category }: { children: React.ReactNode; category?: s
     'Politique': 'bg-red-600 text-white',
     'Culture': 'bg-amber-500 text-white',
     'Urgent': 'bg-red-700 text-white animate-pulse',
+    'Science': 'bg-purple-600 text-white',
+    'Santé': 'bg-teal-500 text-white',
+    'Histoire': 'bg-stone-600 text-white',
+    'Sport': 'bg-indigo-600 text-white',
   };
 
   return (
@@ -706,7 +710,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const categories = ['À la une', 'Urgent', 'Afrique', 'Monde', 'Économie', 'Politique', 'Tech', 'Culture'];
+  const categories = ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport'];
 
   const filteredArticles = activeCategory === 'À la une' 
     ? MOCK_ARTICLES 
@@ -966,6 +970,9 @@ export default function App() {
               <h1 className="text-xl md:text-2xl font-black tracking-tighter">
                 AKWABA <span className="text-primary">INFO</span>
               </h1>
+              <p className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1">
+                L’info du monde en un clic
+              </p>
             </div>
           </div>
 
@@ -1667,13 +1674,58 @@ export default function App() {
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
                 <ArrowLeft size={14} /> Retour à l'accueil
               </button>
-              <h2 className="text-3xl font-black">À propos d'Akwaba Info</h2>
-              <div className="markdown-body">
-                <p>Akwaba Info est une plateforme d'actualités panafricaine moderne, née de la volonté de raconter l'Afrique sous un angle nouveau, dynamique et tourné vers l'avenir.</p>
-                <h3>Notre Mission</h3>
-                <p>Informer, analyser et décrypter les enjeux du continent avec rigueur et indépendance. Nous croyons en un journalisme de solutions qui met en lumière les initiatives transformatrices.</p>
-                <h3>Notre Équipe</h3>
-                <p>Basés à Abidjan, nous collaborons avec un réseau de correspondants à travers toute l'Afrique de l'Ouest et au-delà.</p>
+              <h2 className="text-4xl font-black">À propos d'Akwaba Info</h2>
+              <div className="markdown-body space-y-6">
+                <p className="text-lg leading-relaxed">
+                  Akwaba Info est un site d’actualité proposant des articles variés et actualisés sur la politique, l’économie, la science, la santé, la culture, l’histoire et le sport. Il permet de suivre facilement l’actualité et d’obtenir des informations fiables en un seul clic.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 className="text-xl font-black mb-4">Points forts</h3>
+                    <ul className="space-y-2 text-slate-600">
+                      <li>• Contenu diversifié et régulièrement mis à jour</li>
+                      <li>• Navigation facile grâce aux rubriques thématiques</li>
+                      <li>• Informations rédigées en français accessible à tous</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h3 className="text-xl font-black mb-4">Notre Objectif</h3>
+                    <p className="text-slate-600">
+                      Informer et sensibiliser le public sur les événements et actualités importantes dans différents domaines, rapidement et efficacement.
+                    </p>
+                  </div>
+                </div>
+
+                <h3 className="text-2xl font-black">Ce qui nous distingue</h3>
+                <p>
+                  Akwaba Info se démarque par un positionnement éditorial centré sur une lecture du monde à partir des réalités africaines, tout en restant ouvert à l’actualité internationale. Contrairement aux médias généralistes classiques, nous mettons en avant :
+                </p>
+                <ul className="space-y-4">
+                  <li className="flex gap-4">
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">1</div>
+                    <p><strong>Une priorité donnée aux contenus africains</strong> : actualité locale et régionale souvent peu représentée dans les grands médias internationaux.</p>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">2</div>
+                    <p><strong>Un traitement accessible et pédagogique</strong> : permettre à un large public de comprendre facilement des sujets complexes.</p>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">3</div>
+                    <p><strong>Une diversité thématique équilibrée</strong> : politique, économie, culture, histoire, etc., avec une attention particulière à l’impact concret sur les populations.</p>
+                  </li>
+                  <li className="flex gap-4">
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">4</div>
+                    <p><strong>Une vision positive</strong> : valoriser les initiatives, les innovations et les cultures africaines, et pas uniquement les crises ou faits négatifs.</p>
+                  </li>
+                </ul>
+
+                <div className="bg-primary text-white p-8 rounded-3xl mt-10">
+                  <h3 className="text-xl font-black mb-4 text-white">En résumé</h3>
+                  <p className="italic opacity-90">
+                    Akwaba Info n’est pas seulement un site d’actualité généraliste ; c’est un média qui propose une vision du monde ancrée en Afrique, avec un regard accessible, positif et éducatif, ce qui constitue sa véritable identité et sa différence.
+                  </p>
+                </div>
               </div>
             </motion.div>
           ) : currentView === 'privacy' ? (
@@ -1719,7 +1771,7 @@ export default function App() {
                       </div>
                       <div>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Téléphone</p>
-                        <p className="font-bold">+225 07 00 00 00 00</p>
+                        <p className="font-bold">06 23 94 00 97</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -1728,7 +1780,7 @@ export default function App() {
                       </div>
                       <div>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Email</p>
-                        <p className="font-bold">contact@akwaba-info.com</p>
+                        <p className="font-bold">akwabainfo229@gmail.com</p>
                       </div>
                     </div>
                   </div>
@@ -1775,7 +1827,7 @@ export default function App() {
               AKWABA <span className="text-primary">INFO</span>
             </h2>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Le premier média panafricain 100% digital, propulsé par une communauté de journalistes engagés pour une Afrique qui gagne.
+              Akwaba Info est un site d’actualité proposant des articles variés et actualisés sur la politique, l’économie, la science, la santé, la culture, l’histoire et le sport. L’info du monde en un clic.
             </p>
             <div className="flex gap-4">
               <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Twitter size={20} /></button>
@@ -1806,7 +1858,7 @@ export default function App() {
           <div className="space-y-6">
             <h4 className="font-black text-sm uppercase tracking-widest">Contact</h4>
             <p className="text-sm text-slate-500">Abidjan, Côte d'Ivoire<br />Plateau, Avenue Marchand</p>
-            <p onClick={() => navigateTo('contact')} className="text-sm font-bold text-primary cursor-pointer hover:underline">contact@akwaba-info.com</p>
+            <p onClick={() => navigateTo('contact')} className="text-sm font-bold text-primary cursor-pointer hover:underline">akwabainfo229@gmail.com</p>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-slate-100 text-center text-xs text-slate-400">
