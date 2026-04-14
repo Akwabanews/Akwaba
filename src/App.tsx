@@ -921,24 +921,25 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
             className={cn(
-              "fixed inset-0 z-[100] p-6 lg:hidden flex flex-col",
+              "fixed inset-0 z-[100] p-6 lg:hidden flex flex-col overflow-y-auto",
               isDarkMode ? "bg-slate-950" : "bg-white"
             )}
           >
             <div className="flex justify-between items-center mb-10">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-4 w-full">
                 <img 
-                  src="/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                  src="https://raw.githubusercontent.com/Akwabanews/Akwaba/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
                   alt="Akwaba Info Logo" 
-                  className="w-8 h-8 object-contain rounded-lg"
+                  className="w-32 h-32 object-contain rounded-3xl shadow-lg border border-slate-100"
                   referrerPolicy="no-referrer"
-                  onError={(e) => (e.currentTarget.style.display = 'none')}
                 />
-                <h2 className="text-xl font-black">MENU</h2>
+                <div className="flex justify-between items-center w-full">
+                  <h2 className="text-2xl font-black">MENU</h2>
+                  <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-900">
+                    <X size={24} />
+                  </button>
+                </div>
               </div>
-              <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-900">
-                <X size={24} />
-              </button>
             </div>
             <nav className="flex flex-col gap-6">
               {categories.map(cat => (
@@ -967,7 +968,7 @@ export default function App() {
         "sticky top-0 z-50 backdrop-blur-xl border-b transition-colors",
         isDarkMode ? "bg-slate-950/80 border-slate-800" : "bg-white/80 border-slate-200"
       )}>
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-24 md:h-28 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setIsMenuOpen(true)}
@@ -975,19 +976,18 @@ export default function App() {
             >
               <Menu size={24} />
             </button>
-            <div onClick={goHome} className="cursor-pointer flex items-center gap-3">
+            <div onClick={goHome} className="cursor-pointer flex items-center gap-4">
               <img 
-                src="/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                src="https://raw.githubusercontent.com/Akwabanews/Akwaba/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
                 alt="Akwaba Info Logo" 
-                className="w-10 h-10 object-contain rounded-lg"
+                className="w-16 h-16 md:w-20 md:h-20 object-contain rounded-2xl shadow-md border border-slate-50"
                 referrerPolicy="no-referrer"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
               />
               <div>
-                <h1 className="text-xl md:text-2xl font-black tracking-tighter">
+                <h1 className="text-xl md:text-3xl font-black tracking-tighter">
                   AKWABA <span className="text-primary">INFO</span>
                 </h1>
-                <p className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1">
+                <p className="hidden md:block text-xs font-bold text-slate-400 uppercase tracking-widest -mt-1">
                   L’info du monde en un clic
                 </p>
               </div>
@@ -995,13 +995,13 @@ export default function App() {
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6 overflow-x-auto flex-nowrap no-scrollbar max-w-[50%]">
             {categories.map(cat => (
               <button 
                 key={cat}
                 onClick={() => handleCategoryClick(cat)}
                 className={cn(
-                  "text-sm font-bold transition-colors hover:text-primary",
+                  "text-sm font-bold transition-colors hover:text-primary whitespace-nowrap",
                   activeCategory === cat && currentView === 'home' ? "text-primary" : "text-slate-500"
                 )}
               >
@@ -1054,15 +1054,15 @@ export default function App() {
               className="space-y-10"
             >
               {/* Category Tabs Mobile */}
-              <div className="lg:hidden flex gap-2 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4">
+              <div className="lg:hidden flex flex-nowrap gap-2 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 touch-pan-x">
                 {categories.map(cat => (
                   <button
                     key={cat}
                     onClick={() => handleCategoryClick(cat)}
                     className={cn(
-                      "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all",
+                      "px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 shadow-sm",
                       activeCategory === cat 
-                        ? "bg-primary text-white shadow-md shadow-primary/20" 
+                        ? "bg-primary text-white shadow-primary/20" 
                         : "bg-white text-slate-500 border border-slate-200"
                     )}
                   >
@@ -1841,15 +1841,14 @@ export default function App() {
       )}>
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           <div className="space-y-6">
-            <div onClick={goHome} className="flex items-center gap-3 cursor-pointer">
+            <div onClick={goHome} className="flex flex-col gap-6 cursor-pointer">
               <img 
-                src="/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                src="https://raw.githubusercontent.com/Akwabanews/Akwaba/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
                 alt="Akwaba Info Logo" 
-                className="w-10 h-10 object-contain rounded-lg"
+                className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-[40px] shadow-2xl border border-slate-100"
                 referrerPolicy="no-referrer"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
               />
-              <h2 className="text-2xl font-black tracking-tighter">
+              <h2 className="text-3xl font-black tracking-tighter">
                 AKWABA <span className="text-primary">INFO</span>
               </h2>
             </div>
