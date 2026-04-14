@@ -928,7 +928,7 @@ export default function App() {
             <div className="flex justify-between items-center mb-10">
               <div className="flex flex-col items-center gap-4 w-full">
                 <img 
-                  src="https://raw.githubusercontent.com/Akwabanews/Akwaba/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                  src="https://raw.githubusercontent.com/Akwabanews/Sources/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
                   alt="Akwaba Info Logo" 
                   className="w-32 h-32 object-contain rounded-3xl shadow-lg border border-slate-100"
                   referrerPolicy="no-referrer"
@@ -978,7 +978,7 @@ export default function App() {
             </button>
             <div onClick={goHome} className="cursor-pointer flex items-center gap-4">
               <img 
-                src="https://raw.githubusercontent.com/Akwabanews/Akwaba/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                src="https://raw.githubusercontent.com/Akwabanews/Sources/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
                 alt="Akwaba Info Logo" 
                 className="w-16 h-16 md:w-20 md:h-20 object-contain rounded-2xl shadow-md border border-slate-50"
                 referrerPolicy="no-referrer"
@@ -1843,7 +1843,7 @@ export default function App() {
           <div className="space-y-6">
             <div onClick={goHome} className="flex flex-col gap-6 cursor-pointer">
               <img 
-                src="https://raw.githubusercontent.com/Akwabanews/Akwaba/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                src="https://raw.githubusercontent.com/Akwabanews/Sources/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
                 alt="Akwaba Info Logo" 
                 className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-[40px] shadow-2xl border border-slate-100"
                 referrerPolicy="no-referrer"
