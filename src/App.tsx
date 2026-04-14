@@ -997,7 +997,7 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
             className={cn(
-              "fixed inset-0 z-[100] p-6 lg:hidden flex flex-col overflow-y-auto",
+              "fixed inset-0 z-[100] p-6 lg:hidden flex flex-col overflow-y-auto scroll-smooth",
               isDarkMode ? "bg-slate-950" : "bg-white"
             )}
           >
@@ -1130,11 +1130,15 @@ export default function App() {
               className="space-y-10"
             >
               {/* Category Tabs Mobile */}
-              <div className="lg:hidden flex flex-nowrap gap-2 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 touch-pan-x">
+              <div className="lg:hidden flex flex-nowrap gap-2 overflow-x-auto pb-4 no-scrollbar -mx-4 px-4 touch-pan-x scroll-smooth">
                 {categories.map(cat => (
                   <button
                     key={cat}
-                    onClick={() => handleCategoryClick(cat)}
+                    id={`cat-tab-${cat}`}
+                    onClick={() => {
+                      handleCategoryClick(cat);
+                      document.getElementById(`cat-tab-${cat}`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }}
                     className={cn(
                       "px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all shrink-0 shadow-sm",
                       activeCategory === cat 
@@ -1827,9 +1831,56 @@ export default function App() {
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
                 <ArrowLeft size={14} /> Retour à l'accueil
               </button>
-              <h2 className="text-3xl font-black">Politique de Confidentialité</h2>
+              <h2 className="text-4xl font-black">Politique de Confidentialité</h2>
               <div className="markdown-body">
-                <p>Chez Akwaba Info, la protection de vos données est une priorité. Nous collectons uniquement les informations nécessaires au bon fonctionnement de nos services.</p>
+                <ReactMarkdown>{`
+## 1. Introduction  
+Chez Akwaba Info, la protection de vos données personnelles est une priorité. Cette politique de confidentialité vise à vous informer de manière claire et transparente sur la manière dont nous collectons, utilisons et protégeons vos informations lorsque vous utilisez notre site.
+
+## 2. Données collectées  
+Nous collectons uniquement les informations nécessaires au bon fonctionnement de nos services, notamment :  
+- Les données de navigation (adresse IP, type d’appareil, navigateur, pages consultées)  
+- Les informations que vous fournissez volontairement (formulaire de contact, inscription à une newsletter, etc.)  
+
+## 3. Utilisation des données  
+Les données collectées sont utilisées pour :  
+- Assurer le bon fonctionnement du site  
+- Améliorer l’expérience utilisateur  
+- Répondre à vos demandes et messages  
+- Envoyer des informations ou actualités (si vous y avez consenti)
+
+## 4. Cookies  
+Notre site peut utiliser des cookies pour :  
+- Faciliter votre navigation  
+- Analyser l’audience et les performances du site  
+
+Vous pouvez configurer votre navigateur pour refuser les cookies si vous le souhaitez.
+
+## 5. Partage des données  
+Vos données personnelles ne sont ni vendues ni louées. Elles peuvent être partagées uniquement avec des prestataires techniques nécessaires au fonctionnement du site, dans le respect de la confidentialité.
+
+## 6. Sécurité  
+Nous mettons en place des mesures de sécurité appropriées pour protéger vos données contre tout accès non autorisé, perte ou divulgation.
+
+## 7. Vos droits  
+Conformément aux réglementations en vigueur, vous disposez des droits suivants :  
+- Droit d’accès à vos données  
+- Droit de rectification  
+- Droit de suppression  
+- Droit d’opposition au traitement de vos données  
+
+Pour exercer ces droits, vous pouvez nous contacter.
+
+## 8. Modifications  
+Cette politique de confidentialité peut être mise à jour à tout moment. Nous vous recommandons de la consulter régulièrement.
+
+## 9. Contact  
+Pour toute question concernant cette politique ou vos données personnelles, vous pouvez nous contacter via les moyens disponibles sur notre site.
+
+---
+
+Dernière mise à jour : Avril 2026
+`}</ReactMarkdown>
               </div>
             </motion.div>
           ) : currentView === 'terms' ? (
@@ -1837,9 +1888,47 @@ export default function App() {
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
                 <ArrowLeft size={14} /> Retour à l'accueil
               </button>
-              <h2 className="text-4xl font-black">Conditions d'Utilisation</h2>
+              <h2 className="text-4xl font-black">Conditions Générales d’Utilisation (CGU)</h2>
               <div className="markdown-body">
-                <p>L'utilisation de ce site implique l'acceptation pleine et entière des conditions générales d'utilisation décrites ci-après.</p>
+                <ReactMarkdown>{`
+## 1. Objet  
+Les présentes Conditions Générales d’Utilisation régissent l’accès et l’utilisation du site Akwaba Info.
+
+## 2. Accès au site  
+Le site est accessible gratuitement à tout utilisateur disposant d’un accès à Internet. Tous les frais liés à l’accès (connexion, matériel, etc.) sont à la charge de l’utilisateur.
+
+## 3. Contenu  
+Les contenus publiés (articles, images, informations) sont fournis à titre informatif. Akwaba Info s’efforce de fournir des informations fiables, mais ne garantit pas leur exactitude ou leur mise à jour en temps réel.
+
+## 4. Propriété intellectuelle  
+Tous les contenus du site (textes, images, logo, etc.) sont protégés par les lois relatives à la propriété intellectuelle. Toute reproduction ou utilisation sans autorisation est interdite.
+
+## 5. Responsabilité  
+L’utilisateur est seul responsable de l’utilisation qu’il fait des informations disponibles sur le site.  
+Akwaba Info ne pourra être tenu responsable en cas de dommages directs ou indirects liés à l’utilisation du site.
+
+## 6. Comportement de l’utilisateur  
+L’utilisateur s’engage à :  
+- Ne pas utiliser le site à des fins illégales  
+- Ne pas perturber le bon fonctionnement du site  
+- Respecter les autres utilisateurs  
+
+## 7. Liens externes  
+Le site peut contenir des liens vers des sites externes. Akwaba Info n’est pas responsable du contenu de ces sites.
+
+## 8. Modification des conditions  
+Les présentes conditions peuvent être modifiées à tout moment. Les utilisateurs sont invités à les consulter régulièrement.
+
+## 9. Droit applicable  
+Les présentes conditions sont régies par les lois en vigueur dans le pays d’exploitation du site.
+
+## 10. Contact  
+Pour toute question concernant les conditions d’utilisation, vous pouvez nous contacter via les moyens disponibles sur le site.
+
+---
+
+Dernière mise à jour : Avril 2026
+`}</ReactMarkdown>
               </div>
             </motion.div>
           ) : currentView === 'contact' ? (
@@ -1859,6 +1948,15 @@ export default function App() {
                     Une question ? Une suggestion ? Ou vous souhaitez simplement nous dire Akwaba ? Notre équipe est à votre écoute.
                   </p>
                   <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                        <Map size={24} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Adresse</p>
+                        <p className="font-bold">10 rue ange Rubaud, 94230 Cachan</p>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
                         <Smartphone size={24} />
@@ -1901,9 +1999,39 @@ export default function App() {
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
                 <ArrowLeft size={14} /> Retour à l'accueil
               </button>
-              <h2 className="text-4xl font-black">Politique des Cookies</h2>
+              <h2 className="text-4xl font-black">Politique relative aux Cookies</h2>
               <div className="markdown-body">
-                <p>Nous utilisons des cookies pour améliorer votre expérience sur notre site. Certains sont essentiels, d'autres nous aident à analyser le trafic.</p>
+                <ReactMarkdown>{`
+## 1. Introduction  
+Le site Akwaba Info utilise des cookies afin d’améliorer votre expérience de navigation et d’analyser l’utilisation du site.
+
+## 2. Qu’est-ce qu’un cookie ?  
+Un cookie est un petit fichier texte enregistré sur votre appareil (ordinateur, smartphone, tablette) lors de votre visite sur un site web. Il permet de reconnaître votre appareil et de mémoriser certaines informations.
+
+## 3. Types de cookies utilisés  
+Nous utilisons différents types de cookies :  
+- Cookies essentiels : nécessaires au bon fonctionnement du site  
+- Cookies analytiques : permettent de mesurer l’audience et comprendre l’utilisation du site  
+- Cookies de préférence : mémorisent vos choix (langue, paramètres)
+
+## 4. Gestion des cookies  
+Vous pouvez à tout moment configurer votre navigateur pour :  
+- Accepter tous les cookies  
+- Refuser tous les cookies  
+- Être informé lorsqu’un cookie est déposé  
+
+Notez que le refus de certains cookies peut affecter le fonctionnement du site.
+
+## 5. Durée de conservation  
+Les cookies sont conservés pour une durée limitée, en fonction de leur type, et conformément aux réglementations en vigueur.
+
+## 6. Modification de la politique  
+Cette politique peut être modifiée à tout moment afin de rester conforme aux lois et aux évolutions du site.
+
+---
+
+Dernière mise à jour : Avril 2026
+`}</ReactMarkdown>
               </div>
             </motion.div>
           ) : null}
@@ -1959,7 +2087,7 @@ export default function App() {
 
           <div className="space-y-6">
             <h4 className="font-black text-sm uppercase tracking-widest">Contact</h4>
-            <p className="text-sm text-slate-500">Abidjan, Côte d'Ivoire<br />Plateau, Avenue Marchand</p>
+            <p className="text-sm text-slate-500">10 rue ange Rubaud<br />94230 Cachan, France</p>
             <p onClick={() => navigateTo('contact')} className="text-sm font-bold text-primary cursor-pointer hover:underline">akwabainfo229@gmail.com</p>
           </div>
         </div>
