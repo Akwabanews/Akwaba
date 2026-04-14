@@ -523,6 +523,72 @@ const FlashInfo = ({ articles }: { articles: string[] }) => {
 
 // --- Main App ---
 
+const SplashScreen = ({ isDarkMode }: { isDarkMode: boolean }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.8, ease: "easeInOut" } }}
+      className={cn(
+        "fixed inset-0 z-[1000] flex flex-col items-center justify-center p-6",
+        isDarkMode ? "bg-slate-950" : "bg-[#F5F1EB]"
+      )}
+    >
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 1, ease: "easeOut" }}
+        className="flex flex-col items-center gap-8"
+      >
+        <img 
+          src="https://raw.githubusercontent.com/Akwabanews/Sources/main/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+          alt="Akwaba Info Logo" 
+          className="w-48 h-48 md:w-64 md:h-64 object-contain rounded-[40px] shadow-2xl border border-white/20"
+          referrerPolicy="no-referrer"
+        />
+        
+        <div className="text-center space-y-4">
+          <motion.h1 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="text-4xl md:text-6xl font-black tracking-tighter"
+          >
+            AKWABA <span className="text-primary">INFO</span>
+          </motion.h1>
+          <motion.p 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.8 }}
+            className="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs md:text-sm"
+          >
+            L’info du monde en un clic
+          </motion.p>
+        </div>
+
+        <div className="relative mt-10">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+            className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+          </div>
+        </div>
+        
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="mt-12 text-slate-400 text-[10px] font-black uppercase tracking-widest"
+        >
+          Chargement de l'actualité...
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 export default function App() {
   const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'category' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event'>('home');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -531,6 +597,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<string>('5000');
   const [selectedPayment, setSelectedPayment] = useState<'mobile' | 'card'>('mobile');
@@ -706,7 +773,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      // Keep splash a bit longer for the "welcome" effect
+      setTimeout(() => setShowSplash(false), 2000);
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -789,10 +860,15 @@ export default function App() {
     .slice(0, 6);
 
   return (
-    <div className={cn(
-      "min-h-screen transition-colors duration-300 african-pattern pb-16 lg:pb-0",
-      isDarkMode ? "bg-slate-950 text-white" : "bg-[#F5F1EB] text-slate-900"
-    )}>
+    <>
+      <AnimatePresence>
+        {showSplash && <SplashScreen isDarkMode={isDarkMode} />}
+      </AnimatePresence>
+
+      <div className={cn(
+        "min-h-screen transition-colors duration-300 african-pattern pb-16 lg:pb-0",
+        isDarkMode ? "bg-slate-950 text-white" : "bg-[#F5F1EB] text-slate-900"
+      )}>
       <FlashInfo articles={FLASH_NEWS} />
       {/* Notification Prompt */}
       <AnimatePresence>
@@ -1915,5 +1991,6 @@ export default function App() {
         </button>
       </nav>
     </div>
+    </>
   );
 }
