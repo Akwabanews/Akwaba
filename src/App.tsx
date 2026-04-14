@@ -323,7 +323,7 @@ const ArticleCarousel = ({ articles, onArticleClick }: { articles: Article[], on
   );
 };
 
-const EventSection = ({ events, onEventClick }: { events: Event[], onEventClick: (e: Event) => void }) => {
+const EventSection = ({ events, onEventClick, onSeeAll }: { events: Event[], onEventClick: (e: Event) => void, onSeeAll: () => void }) => {
   return (
     <section className="py-20 border-t border-slate-100">
       <div className="flex items-center justify-between mb-10">
@@ -331,7 +331,10 @@ const EventSection = ({ events, onEventClick }: { events: Event[], onEventClick:
           <h2 className="font-black text-3xl md:text-4xl tracking-tighter">Agenda Culturel</h2>
           <p className="text-slate-500 mt-2">Les événements à ne pas manquer</p>
         </div>
-        <button className="text-primary font-bold flex items-center gap-2 group">
+        <button 
+          onClick={onSeeAll}
+          className="text-primary font-bold flex items-center gap-2 group"
+        >
           Voir tout l'agenda <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
@@ -384,6 +387,7 @@ const EventDetailView = ({ event, onBack }: { event: Event, onBack: () => void }
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4 }}
       className="max-w-4xl mx-auto space-y-8"
     >
       <button onClick={onBack} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
@@ -590,7 +594,7 @@ const SplashScreen = ({ isDarkMode }: { isDarkMode: boolean }) => {
 };
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'category' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'category' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event' | 'all-events'>('home');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeCategory, setActiveCategory] = useState('À la une');
@@ -1124,9 +1128,10 @@ export default function App() {
           ) : currentView === 'home' ? (
             <motion.div 
               key="home"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
               className="space-y-10"
             >
               {/* Category Tabs Mobile */}
@@ -1188,6 +1193,18 @@ export default function App() {
                     </div>
                   )}
                 </div>
+                
+                {filteredArticles.length > 0 && (
+                  <div className="flex justify-center pt-8">
+                    <button 
+                      onClick={() => navigateTo('search')}
+                      className="group flex items-center gap-3 bg-white border-2 border-slate-100 px-8 py-4 rounded-2xl font-black text-slate-600 hover:border-primary hover:text-primary transition-all shadow-sm hover:shadow-md"
+                    >
+                      VOIR D'AUTRES ARTICLES
+                      <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+                )}
               </section>
 
               {/* Newsletter & Ad */}
@@ -1222,6 +1239,7 @@ export default function App() {
               <EventSection 
                 events={MOCK_EVENTS} 
                 onEventClick={handleEventClick} 
+                onSeeAll={() => navigateTo('all-events')}
               />
             </motion.div>
           ) : currentView === 'event' && selectedEvent ? (
@@ -1235,6 +1253,7 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
               className="max-w-4xl mx-auto space-y-8"
             >
               <div className="space-y-4 text-center">
@@ -1535,9 +1554,10 @@ export default function App() {
           ) : currentView === 'search' ? (
             <motion.div 
               key="search"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
               className="max-w-3xl mx-auto space-y-10"
             >
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
@@ -1662,6 +1682,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4 }}
               className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center py-10"
             >
               <div className="lg:col-span-2">
@@ -1765,8 +1786,10 @@ export default function App() {
           ) : currentView === 'about' ? (
             <motion.div 
               key="about"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
               className="max-w-3xl mx-auto py-10 space-y-8"
             >
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
@@ -1827,7 +1850,14 @@ export default function App() {
               </div>
             </motion.div>
           ) : currentView === 'privacy' ? (
-            <motion.div key="privacy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto py-10 space-y-8">
+            <motion.div 
+              key="privacy" 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-3xl mx-auto py-10 space-y-8"
+            >
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
                 <ArrowLeft size={14} /> Retour à l'accueil
               </button>
@@ -1884,7 +1914,14 @@ Dernière mise à jour : Avril 2026
               </div>
             </motion.div>
           ) : currentView === 'terms' ? (
-            <motion.div key="terms" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto py-10 space-y-8">
+            <motion.div 
+              key="terms" 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-3xl mx-auto py-10 space-y-8"
+            >
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
                 <ArrowLeft size={14} /> Retour à l'accueil
               </button>
@@ -1936,6 +1973,8 @@ Dernière mise à jour : Avril 2026
               key="contact"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
               className="max-w-4xl mx-auto py-10 space-y-12"
             >
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
@@ -1994,8 +2033,72 @@ Dernière mise à jour : Avril 2026
                 </div>
               </div>
             </motion.div>
+          ) : currentView === 'all-events' ? (
+            <motion.div 
+              key="all-events"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-7xl mx-auto py-10 space-y-12"
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
+                    <ArrowLeft size={14} /> Retour à l'accueil
+                  </button>
+                  <h2 className="text-4xl font-black tracking-tighter">Agenda Complet</h2>
+                  <p className="text-slate-500 mt-2">Tous les événements culturels et artistiques</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {MOCK_EVENTS.map((event) => (
+                  <motion.div 
+                    key={event.id}
+                    whileHover={{ y: -10 }}
+                    onClick={() => handleEventClick(event)}
+                    className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-100 cursor-pointer group"
+                  >
+                    <div className="aspect-[3/4] relative overflow-hidden bg-slate-100">
+                      {event.image && (
+                        <img 
+                          src={event.image} 
+                          alt={event.title}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                      <div className="absolute top-4 left-4">
+                        <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-primary shadow-lg">
+                          {event.category}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-6 space-y-3">
+                      <div className="flex items-center gap-2 text-primary">
+                        <Calendar size={14} />
+                        <span className="text-xs font-bold uppercase tracking-wider">{format(new Date(event.date), 'dd MMMM yyyy', { locale: fr })}</span>
+                      </div>
+                      <h3 className="font-black text-xl leading-tight group-hover:text-primary transition-colors line-clamp-2">{event.title}</h3>
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Map size={14} />
+                        <span className="text-xs font-bold">{event.location}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
           ) : currentView === 'cookies' ? (
-            <motion.div key="cookies" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto py-10 space-y-8">
+            <motion.div 
+              key="cookies" 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="max-w-3xl mx-auto py-10 space-y-8"
+            >
               <button onClick={goHome} className="text-primary text-xs font-bold flex items-center gap-1 mb-4">
                 <ArrowLeft size={14} /> Retour à l'accueil
               </button>
