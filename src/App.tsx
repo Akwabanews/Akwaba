@@ -34,7 +34,7 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { MOCK_ARTICLES, MOCK_EVENTS } from './constants';
 import { Article, Comment, Event } from './types';
-import { cn } from './lib/utils';
+import { cn, optimizeImage } from './lib/utils';
 
 // --- Components ---
 
@@ -87,10 +87,12 @@ const HeroSlideshow = ({ articles, onArticleClick }: { articles: Article[]; onAr
         >
           {articles[currentIndex].image && (
             <img 
-              src={articles[currentIndex].image} 
+              src={optimizeImage(articles[currentIndex].image, 1200)} 
               alt={articles[currentIndex].title}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
+              loading="eager"
+              decoding="async"
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
@@ -176,10 +178,13 @@ const ArticleCard = ({ article, onClick, variant = 'horizontal' }: { article: Ar
       >
         {article.image && (
           <img 
-            src={article.image} 
+            id={`article-img-hero-${article.id}`}
+            src={optimizeImage(article.image, 600)} 
             alt={article.title}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
@@ -214,10 +219,13 @@ const ArticleCard = ({ article, onClick, variant = 'horizontal' }: { article: Ar
           variant === 'vertical' ? 'w-full h-40' : 'w-24 h-24 shrink-0'
         )}>
           <img 
-            src={article.image} 
+            id={`article-img-${variant}-${article.id}`}
+            src={optimizeImage(article.image, variant === 'vertical' ? 500 : 200)} 
             alt={article.title}
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
           />
         </div>
       )}
@@ -353,10 +361,13 @@ const EventSection = ({ events, onEventClick, onSeeAll }: { events: Event[], onE
             <div className="aspect-[4/5] relative overflow-hidden bg-slate-100">
               {event.image && (
                 <img 
-                  src={event.image} 
+                  id={`event-img-home-${event.id}`}
+                  src={optimizeImage(event.image, 500)} 
                   alt={event.title} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
@@ -432,10 +443,13 @@ const EventDetailView = ({ event, onBack }: { event: Event, onBack: () => void }
           {event.image && (
             <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5">
               <img 
-                src={event.image} 
+                id={`event-detail-img-${event.id}`}
+                src={optimizeImage(event.image, 1200)} 
                 alt={event.title}
                 className="w-full h-auto max-h-[80vh] object-contain mx-auto block"
                 referrerPolicy="no-referrer"
+                loading="lazy"
+                decoding="async"
               />
             </div>
           )}
@@ -479,7 +493,14 @@ const ReadAlso = ({ currentArticle, articles, onArticleClick }: { currentArticle
             className="flex gap-4 group text-left w-full"
           >
             <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
-              <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+              <img 
+                src={optimizeImage(article.image, 200)} 
+                alt={article.title} 
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                referrerPolicy="no-referrer" 
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <div className="flex-1 py-1">
               <h5 className="font-display font-bold text-slate-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">
@@ -1016,6 +1037,8 @@ export default function App() {
                   alt="Akwaba Info Logo" 
                   className="w-32 h-32 object-contain rounded-3xl shadow-lg border border-slate-100"
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className="flex justify-between items-center w-full">
                   <h2 className="text-2xl font-black">MENU</h2>
@@ -1066,6 +1089,7 @@ export default function App() {
                 alt="Akwaba Info Logo" 
                 className="w-16 h-16 md:w-20 md:h-20 object-contain rounded-2xl shadow-md border border-slate-50"
                 referrerPolicy="no-referrer"
+                decoding="async"
               />
               <div>
                 <h1 className="text-xl md:text-3xl font-black tracking-tighter">
@@ -1320,10 +1344,13 @@ export default function App() {
                   {selectedArticle.image && (
                     <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5">
                       <img 
-                        src={selectedArticle.image} 
+                        id={`article-detail-img-${selectedArticle.id}`}
+                        src={optimizeImage(selectedArticle.image, 1200)} 
                         alt={selectedArticle.title}
                         className="w-full h-auto max-h-[80vh] object-contain mx-auto block"
                         referrerPolicy="no-referrer"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   )}
@@ -2074,10 +2101,13 @@ Dernière mise à jour : Avril 2026
                     <div className="aspect-[3/4] relative overflow-hidden bg-slate-100">
                       {event.image && (
                         <img 
-                          src={event.image} 
+                          id={`event-card-img-all-${event.id}`}
+                          src={optimizeImage(event.image, 500)} 
                           alt={event.title}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           referrerPolicy="no-referrer"
+                          loading="lazy"
+                          decoding="async"
                         />
                       )}
                       <div className="absolute top-4 left-4">
@@ -2165,6 +2195,8 @@ Dernière mise à jour : Avril 2026
                 alt="Akwaba Info Logo" 
                 className="w-40 h-40 md:w-56 md:h-56 object-contain rounded-[40px] shadow-2xl border border-slate-100"
                 referrerPolicy="no-referrer"
+                loading="lazy"
+                decoding="async"
               />
               <h2 className="text-3xl font-black tracking-tighter">
                 AKWABA <span className="text-primary">INFO</span>
