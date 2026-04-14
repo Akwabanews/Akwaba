@@ -926,7 +926,16 @@ export default function App() {
             )}
           >
             <div className="flex justify-between items-center mb-10">
-              <h2 className="text-xl font-black">MENU</h2>
+              <div className="flex items-center gap-3">
+                <img 
+                  src="/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                  alt="Akwaba Info Logo" 
+                  className="w-8 h-8 object-contain rounded-lg"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => (e.currentTarget.style.display = 'none')}
+                />
+                <h2 className="text-xl font-black">MENU</h2>
+              </div>
               <button onClick={() => setIsMenuOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-900">
                 <X size={24} />
               </button>
@@ -966,13 +975,22 @@ export default function App() {
             >
               <Menu size={24} />
             </button>
-            <div onClick={goHome} className="cursor-pointer">
-              <h1 className="text-xl md:text-2xl font-black tracking-tighter">
-                AKWABA <span className="text-primary">INFO</span>
-              </h1>
-              <p className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1">
-                L’info du monde en un clic
-              </p>
+            <div onClick={goHome} className="cursor-pointer flex items-center gap-3">
+              <img 
+                src="/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                alt="Akwaba Info Logo" 
+                className="w-10 h-10 object-contain rounded-lg"
+                referrerPolicy="no-referrer"
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+              <div>
+                <h1 className="text-xl md:text-2xl font-black tracking-tighter">
+                  AKWABA <span className="text-primary">INFO</span>
+                </h1>
+                <p className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest -mt-1">
+                  L’info du monde en un clic
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1823,9 +1841,18 @@ export default function App() {
       )}>
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           <div className="space-y-6">
-            <h2 onClick={goHome} className="text-2xl font-black tracking-tighter cursor-pointer">
-              AKWABA <span className="text-primary">INFO</span>
-            </h2>
+            <div onClick={goHome} className="flex items-center gap-3 cursor-pointer">
+              <img 
+                src="/images/2DB685A1-EE6B-478E-B70B-58F490D2948A.jpeg" 
+                alt="Akwaba Info Logo" 
+                className="w-10 h-10 object-contain rounded-lg"
+                referrerPolicy="no-referrer"
+                onError={(e) => (e.currentTarget.style.display = 'none')}
+              />
+              <h2 className="text-2xl font-black tracking-tighter">
+                AKWABA <span className="text-primary">INFO</span>
+              </h2>
+            </div>
             <p className="text-sm text-slate-500 leading-relaxed">
               Akwaba Info est un site d’actualité proposant des articles variés et actualisés sur la politique, l’économie, la science, la santé, la culture, l’histoire et le sport. L’info du monde en un clic.
             </p>
