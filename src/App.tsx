@@ -169,6 +169,7 @@ const ArticleCard = ({ article, onClick, variant = 'horizontal' }: { article: Ar
   if (variant === 'hero') {
     return (
       <motion.div 
+        id={`article-card-hero-${article.id}`}
         whileTap={{ scale: 0.98 }}
         onClick={onClick}
         className="relative h-[240px] w-full rounded-2xl overflow-hidden shadow-xl cursor-pointer group bg-slate-100"
@@ -199,6 +200,7 @@ const ArticleCard = ({ article, onClick, variant = 'horizontal' }: { article: Ar
 
   return (
     <motion.div 
+      id={`article-card-${variant}-${article.id}`}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
@@ -343,6 +345,7 @@ const EventSection = ({ events, onEventClick, onSeeAll }: { events: Event[], onE
         {events.map((event) => (
           <motion.div 
             key={event.id}
+            id={`event-card-home-${event.id}`}
             whileHover={{ y: -10 }}
             onClick={() => onEventClick(event)}
             className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 cursor-pointer group"
@@ -471,11 +474,12 @@ const ReadAlso = ({ currentArticle, articles, onArticleClick }: { currentArticle
         {related.map(article => (
           <button 
             key={article.id}
+            id={`read-also-${article.id}`}
             onClick={() => onArticleClick(article)}
             className="flex gap-4 group text-left w-full"
           >
             <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
-              <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
             </div>
             <div className="flex-1 py-1">
               <h5 className="font-display font-bold text-slate-900 group-hover:text-primary transition-colors leading-tight line-clamp-2">
@@ -594,7 +598,7 @@ const SplashScreen = ({ isDarkMode }: { isDarkMode: boolean }) => {
 };
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'category' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event' | 'all-events'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event' | 'all-events'>('home');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeCategory, setActiveCategory] = useState('À la une');
@@ -1104,6 +1108,7 @@ export default function App() {
               {isDarkMode ? '☀️' : '🌙'}
             </button>
             <button 
+              id="header-donate-btn"
               onClick={() => navigateTo('donate')}
               className="hidden md:flex bg-primary text-white px-4 py-2 rounded-full text-xs font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
             >
@@ -1197,6 +1202,7 @@ export default function App() {
                 {filteredArticles.length > 0 && (
                   <div className="flex justify-center pt-8">
                     <button 
+                      id="home-see-more-articles-btn"
                       onClick={() => navigateTo('search')}
                       className="group flex items-center gap-3 bg-white border-2 border-slate-100 px-8 py-4 rounded-2xl font-black text-slate-600 hover:border-primary hover:text-primary transition-all shadow-sm hover:shadow-md"
                     >
@@ -1221,7 +1227,11 @@ export default function App() {
                       placeholder="votre@email.com" 
                       className="flex-1 bg-white rounded-xl px-4 py-3 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
-                    <button type="submit" className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors">
+                    <button 
+                      type="submit" 
+                      id="newsletter-submit-btn"
+                      className="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-primary/90 transition-colors"
+                    >
                       S'abonner
                     </button>
                   </form>
@@ -2056,6 +2066,7 @@ Dernière mise à jour : Avril 2026
                 {MOCK_EVENTS.map((event) => (
                   <motion.div 
                     key={event.id}
+                    id={`event-card-all-${event.id}`}
                     whileHover={{ y: -10 }}
                     onClick={() => handleEventClick(event)}
                     className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-100 cursor-pointer group"
