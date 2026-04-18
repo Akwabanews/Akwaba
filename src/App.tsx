@@ -740,8 +740,12 @@ export default function App() {
         if (cloudArticles.length > 0) setAdminArticles(cloudArticles);
         if (cloudEvents.length > 0) setAdminEvents(cloudEvents);
         setIsCloudLoaded(true);
-      } catch (error) {
-        console.error("Error fetching cloud data:", error);
+      } catch (error: any) {
+        if (error.code === 'permission-denied') {
+          console.log("Cloud Data: En attente de contenu initial ou de connexion admin.");
+        } else {
+          console.error("Error fetching cloud data:", error);
+        }
       }
     };
     fetchData();
@@ -752,20 +756,36 @@ export default function App() {
   const handleAdminLogin = async () => {
     try {
       const user = await signInWithGoogle();
-      if (user && user.email === 'akwabanewsinfo@gmail.com') {
+      
+      if (!user) {
+        console.log("Login user object is null");
+        return;
+      }
+
+      if (!user.email) {
+        alert("Google n'a pas transmis votre adresse email. Veuillez réessayer ou vérifier les paramètres de votre compte Google.");
+        await auth.signOut();
+        return;
+      }
+
+      console.log("Tentative de connexion avec :", user.email);
+
+      if (user.email === 'akwabanewsinfo@gmail.com') {
         setIsAdminAuthenticated(true);
         setCurrentView('admin');
         setActiveNotification("Connexion réussie !");
       } else {
-        alert(`Accès refusé : L'email ${user?.email} n'est pas autorisé.`);
+        alert(`Accès refusé : L'email ${user.email} n'est pas autorisé. \n\nVeuillez utiliser akwabanewsinfo@gmail.com.`);
         await auth.signOut();
       }
     } catch (error: any) {
       console.error("Login Error:", error);
+      if (error.code === 'auth/popup-closed-by-user') return;
+      
       if (error.code === 'auth/unauthorized-domain') {
-        alert("Erreur Firebase : Ce domaine n'est pas autorisé. \n\nVous devez aller dans la console Firebase > Authentication > Paramètres > Domaines autorisés et ajouter l'adresse de ce site.");
+        alert("Erreur Firebase : Ce domaine n'est pas autorisé. \n\nAjoutez ce domaine dans la console Firebase > Authentication > Paramètres.");
       } else if (error.code === 'auth/popup-blocked') {
-        alert("Le navigateur a bloqué la fenêtre de connexion. Veuillez autoriser les popups pour ce site.");
+        alert("Le navigateur a bloqué la fenêtre de connexion.");
       } else {
         alert("Erreur lors de la connexion : " + (error.message || "Erreur inconnue"));
       }

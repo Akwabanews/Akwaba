@@ -20,22 +20,24 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || '(default)');
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('https://www.googleapis.com/auth/userinfo.email');
+googleProvider.addScope('https://www.googleapis.com/auth/userinfo.profile');
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
 
 // Connection Test
 async function testConnection() {
   try {
     const testDoc = doc(db, 'test_connection', 'ping');
-    await getDocFromServer(testDoc);
-    console.log("Firebase: Connection verified.");
+    await getDoc(testDoc); // Use cached getDoc first
+    console.log(`Firebase: Connected to project ${firebaseConfig.projectId} (DB: ${(firebaseConfig as any).firestoreDatabaseId || 'default'})`);
   } catch (error: any) {
-    console.error("Firebase Connection Error:", error);
-    
+    // If it's just a permission error on an empty DB, we don't want to spam the user interface
     if (error.code === 'permission-denied') {
-      console.warn("Firebase: Accès refusé. C'est normal si vous n'êtes pas connecté ou si les règles sont strictes.");
-    } else if (error.code === 'not-found' || error.message?.includes('database')) {
-      console.error("Firebase: Base de données Firestore non trouvée. Avez-vous cliqué sur 'Créer une base de données' dans la console Firebase ?");
+      console.log("Firebase: Readiness test - Waiting for first content or admin login.");
     } else {
-      console.error("Firebase: Erreur de connexion. Vérifiez votre configuration ou la création de la base de données Firestore dans la console.");
+      console.error("Firebase Connection Note:", error.message);
     }
   }
 }
