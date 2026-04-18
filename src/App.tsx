@@ -13,6 +13,7 @@ import {
   Globe,
   Map,
   User,
+  Camera,
   MessageSquare,
   X,
   Send,
@@ -37,14 +38,17 @@ import {
   LayoutDashboard,
   Settings,
   Copy,
-  Check
+  Check,
+  ArrowRight,
+  AlertTriangle,
+  MonitorOff
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { MOCK_ARTICLES, MOCK_EVENTS } from './constants';
-import { Article, Comment, Event, SiteSettings } from './types';
+import { Article, Comment, Event, SiteSettings, Subscriber, MediaAsset } from './types';
 import { cn, optimizeImage, getYoutubeId } from './lib/utils';
 import { AdminLogin, AdminDashboard, AdminEditor, ExportModal } from './components/Admin';
 import { FirestoreService, signInWithGoogle, auth } from './lib/firebase';
@@ -465,6 +469,11 @@ const EventDetailView = ({ event, onBack }: { event: Event, onBack: () => void }
                 loading="lazy"
                 decoding="async"
               />
+              {event.imageCredit && (
+                <div className="px-6 py-3 bg-slate-900/5 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Camera size={12} /> Source : {event.imageCredit}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -683,9 +692,15 @@ export default function App() {
     phone: "+225 00 00 00 00",
     address: "Abidjan, Côte d'Ivoire",
     facebookUrl: "https://facebook.com",
-    twitterUrl: "https://twitter.com"
+    twitterUrl: "https://twitter.com",
+    categories: ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech'],
+    maintenanceMode: false,
+    urgentBannerActive: false,
+    urgentBannerText: ""
   });
   const [allComments, setAllComments] = useState<Comment[]>([]);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [mediaLibrary, setMediaLibrary] = useState<MediaAsset[]>([]);
   
   // Persistence Logic
   const [articleComments, setArticleComments] = useState<Record<string, Comment[]>>(() => {
@@ -741,17 +756,21 @@ export default function App() {
     // Initial Data Fetch
     const fetchData = async () => {
       try {
-        const [cloudArticles, cloudEvents, cloudSettings, cloudComments] = await Promise.all([
+        const [cloudArticles, cloudEvents, cloudSettings, cloudComments, cloudSubs, cloudMedia] = await Promise.all([
           FirestoreService.getArticles(),
           FirestoreService.getEvents(),
           FirestoreService.getSettings(),
-          FirestoreService.getAllComments()
+          FirestoreService.getAllComments(),
+          FirestoreService.getSubscribers(),
+          FirestoreService.getMediaLibrary()
         ]);
         
         if (cloudArticles.length > 0) setAdminArticles(cloudArticles);
         if (cloudEvents.length > 0) setAdminEvents(cloudEvents);
         if (cloudSettings) setSiteSettings(cloudSettings);
         setAllComments(cloudComments);
+        setSubscribers(cloudSubs);
+        setMediaLibrary(cloudMedia);
         setIsCloudLoaded(true);
       } catch (error: any) {
         if (error.code === 'permission-denied') {
@@ -812,6 +831,9 @@ export default function App() {
     try {
       const art = article as Article;
       await FirestoreService.saveArticle(art);
+      if (art.image) FirestoreService.trackMedia(art.image, 'image');
+      if (art.video) FirestoreService.trackMedia(art.video, 'video');
+      
       const isNew = !adminArticles.find(a => a.id === art.id);
       if (isNew) {
         setAdminArticles([art, ...adminArticles]);
@@ -840,6 +862,9 @@ export default function App() {
     try {
       const ev = event as Event;
       await FirestoreService.saveEvent(ev);
+      if (ev.image) FirestoreService.trackMedia(ev.image, 'image');
+      if (ev.video) FirestoreService.trackMedia(ev.video, 'video');
+      
       const isNew = !adminEvents.find(e => e.id === ev.id);
       if (isNew) {
         setAdminEvents([ev, ...adminEvents]);
@@ -1033,7 +1058,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  const categories = ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport'];
+  const categories = siteSettings.categories || ['À la une', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport'];
 
   const visibleArticles = adminArticles;
   const visibleEvents = adminEvents;
@@ -1114,11 +1139,40 @@ export default function App() {
     })
     .slice(0, 6);
 
+  if (siteSettings.maintenanceMode && !isAdminAuthenticated && currentView !== 'admin') {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center space-y-6">
+        <MonitorOff size={64} className="text-slate-300 animate-pulse" />
+        <h1 className="text-4xl font-black italic">Site en Maintenance</h1>
+        <p className="max-w-md text-slate-500 font-medium leading-relaxed">Nous effectuons actuellement des mises à jour techniques pour améliorer votre expérience. Akwaba Info sera bientôt de retour.</p>
+        <button onClick={() => setCurrentView('admin')} className="text-xs font-bold text-slate-300 hover:text-slate-900 transition-colors uppercase tracking-widest">Administration</button>
+      </div>
+    );
+  }
+
   return (
     <>
       <AnimatePresence>
         {showSplash && <SplashScreen isDarkMode={isDarkMode} />}
       </AnimatePresence>
+
+      {/* Urgent Banner */}
+      {siteSettings.urgentBannerActive && siteSettings.urgentBannerText && (
+        <div className="bg-red-600 text-white overflow-hidden py-3 text-xs font-black uppercase tracking-widest sticky top-0 z-[100] shadow-xl">
+           <motion.div 
+             animate={{ x: [0, -1000] }}
+             transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+             className="whitespace-nowrap flex gap-20 items-center justify-center"
+           >
+             <div className="flex items-center gap-4"><AlertTriangle size={16}/> URGENT : {siteSettings.urgentBannerText}</div>
+             <div className="flex items-center gap-4"><AlertTriangle size={16}/> URGENT : {siteSettings.urgentBannerText}</div>
+             <div className="flex items-center gap-4"><AlertTriangle size={16}/> URGENT : {siteSettings.urgentBannerText}</div>
+             <div className="flex items-center gap-4"><AlertTriangle size={16}/> URGENT : {siteSettings.urgentBannerText}</div>
+             <div className="flex items-center gap-4"><AlertTriangle size={16}/> URGENT : {siteSettings.urgentBannerText}</div>
+             <div className="flex items-center gap-4"><AlertTriangle size={16}/> URGENT : {siteSettings.urgentBannerText}</div>
+           </motion.div>
+        </div>
+      )}
 
       <div className={cn(
         "min-h-screen transition-colors duration-300 african-pattern pb-16 lg:pb-0",
@@ -1546,6 +1600,11 @@ export default function App() {
                       {selectedArticle.author[0]}
                     </div>
                     <span className="font-bold text-slate-900">{selectedArticle.author}</span>
+                    {selectedArticle.authorRole && (
+                      <span className="text-[10px] bg-primary/5 text-primary px-2 py-0.5 rounded font-bold uppercase ml-1">
+                        {selectedArticle.authorRole}
+                      </span>
+                    )}
                   </div>
                   <span>•</span>
                   <span>{format(new Date(selectedArticle.date), 'dd MMMM yyyy', { locale: fr })}</span>
@@ -1578,6 +1637,11 @@ export default function App() {
                         loading="lazy"
                         decoding="async"
                       />
+                      {selectedArticle.imageCredit && (
+                        <div className="px-6 py-3 bg-slate-900/5 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Camera size={12} /> Source : {selectedArticle.imageCredit}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1620,6 +1684,12 @@ export default function App() {
                   </div>
 
                   <GoogleAd className="my-8" label="Publicité ciblée" />
+
+                  {selectedArticle.source && (
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 italic bg-slate-50 p-4 rounded-xl border border-dotted border-slate-200">
+                      <Globe size={14} /> Source : {selectedArticle.source}
+                    </div>
+                  )}
                   
                   {/* Engagement */}
                   <div className="mt-12 pt-8 border-t border-slate-100 flex flex-wrap items-center justify-between gap-6">
@@ -2364,6 +2434,7 @@ Dernière mise à jour : Avril 2026
               editingArticle ? (
                 <AdminEditor 
                   type="article"
+                  categories={siteSettings.categories}
                   data={editingArticle} 
                   onSave={handleSaveArticle} 
                   onCancel={() => setEditingArticle(null)} 
@@ -2371,6 +2442,7 @@ Dernière mise à jour : Avril 2026
               ) : editingEvent ? (
                 <AdminEditor 
                   type="event"
+                  categories={siteSettings.categories}
                   data={editingEvent} 
                   onSave={handleSaveEvent} 
                   onCancel={() => setEditingEvent(null)} 
@@ -2380,6 +2452,8 @@ Dernière mise à jour : Avril 2026
                   articles={adminArticles}
                   events={adminEvents}
                   comments={allComments}
+                  subscribers={subscribers}
+                  mediaLibrary={mediaLibrary}
                   settings={siteSettings}
                   onEditArticle={(a) => setEditingArticle(a)}
                   onEditEvent={(e) => setEditingEvent(e)}
@@ -2469,13 +2543,37 @@ Dernière mise à jour : Avril 2026
           </div>
 
           <div className="space-y-6">
-            <h4 className="font-black text-sm uppercase tracking-widest">Contact</h4>
-            <div className="space-y-3 text-sm text-slate-500">
-              <p className="flex items-center gap-2 italic">{siteSettings.email}</p>
-              <p className="flex items-center gap-2 italic">{siteSettings.phone}</p>
-              <p className="flex items-center gap-2 italic">{siteSettings.address}</p>
+            <h4 className="font-black text-sm uppercase tracking-widest text-primary">Newsletter</h4>
+            <p className="text-sm text-slate-500">Restez informé de l'actualité africaine chaque matin.</p>
+            <div className="relative group">
+              <input 
+                type="email" 
+                placeholder="Votre email" 
+                className="w-full bg-slate-100 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all border border-transparent group-hover:border-slate-200"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+              />
+              <button 
+                onClick={async () => {
+                  if (newsletterEmail && newsletterEmail.includes('@')) {
+                    try {
+                      await FirestoreService.subscribe(newsletterEmail);
+                      setNewsletterEmail('');
+                      setActiveNotification("Inscription réussie ! Merci d'avoir rejoint Akwaba Info.");
+                      setTimeout(() => setActiveNotification(null), 3000);
+                    } catch (e) {
+                      alert("Erreur lors de l'inscription.");
+                    }
+                  } else {
+                    alert("Veuillez entrer un email valide.");
+                  }
+                }}
+                className="absolute right-2 top-2 p-2 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+              >
+                <ArrowRight size={18} />
+              </button>
             </div>
-            <p onClick={() => navigateTo('contact')} className="text-sm font-bold text-primary cursor-pointer hover:underline">Formulaire de contact</p>
+            <p onClick={() => navigateTo('contact')} className="text-sm font-bold text-primary cursor-pointer hover:underline">Support & Contacts</p>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-slate-100 text-center text-xs text-slate-400">

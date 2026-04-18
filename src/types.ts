@@ -3,7 +3,7 @@ export interface Article {
   slug: string;
   title: string;
   date: string;
-  category: 'Afrique' | 'Monde' | 'Économie' | 'Politique' | 'Tech' | 'Culture' | 'Urgent';
+  category: string;
   image?: string;
   video?: string;
   author: string;
@@ -11,10 +11,16 @@ export interface Article {
   excerpt: string;
   content: string;
   readingTime: string;
+  imageCredit?: string;
+  source?: string;
   views: number;
   likes: number;
   commentsCount?: number;
   tags?: string[];
+  // SEO & Social
+  seoTitle?: string;
+  seoDescription?: string;
+  socialImage?: string;
 }
 
 export interface Comment {
@@ -35,6 +41,7 @@ export interface Event {
   location: string;
   category: string;
   image?: string;
+  imageCredit?: string;
   video?: string;
   excerpt: string;
   content: string;
@@ -48,6 +55,32 @@ export interface SiteSettings {
   facebookUrl?: string;
   twitterUrl?: string;
   instagramUrl?: string;
+  // Ads
+  adSlotHeader?: string;
+  adSlotSidebar?: string;
+  adSlotFooter?: string;
+  // Breaking News
+  urgentBannerText?: string;
+  urgentBannerActive?: boolean;
+  urgentBannerLink?: string;
+  // Categories
+  categories: string[];
+  // Maintenance
+  maintenanceMode: boolean;
+}
+
+export interface Subscriber {
+  id: string;
+  email: string;
+  date: string;
+}
+
+export interface MediaAsset {
+  id: string;
+  url: string;
+  type: 'image' | 'video';
+  date: string;
+  fileName?: string;
 }
 
 export interface SiteStats {

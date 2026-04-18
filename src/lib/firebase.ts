@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Article, Event, SiteSettings, Comment } from '../types';
+import { Article, Event, SiteSettings, Comment, Subscriber, MediaAsset } from '../types';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || '(default)');
@@ -94,6 +94,41 @@ export const FirestoreService = {
 
   async deleteComment(id: string): Promise<void> {
     await deleteDoc(doc(db, 'comments', id));
+  },
+
+  // Newsletter
+  async subscribe(email: string): Promise<void> {
+    const id = Date.now().toString();
+    const sub: Subscriber = { id, email, date: new Date().toISOString() };
+    await setDoc(doc(db, 'subscribers', id), sub);
+  },
+
+  async getSubscribers(): Promise<Subscriber[]> {
+    const q = query(collection(db, 'subscribers'), orderBy('date', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => doc.data() as Subscriber);
+  },
+
+  // Media Library (Automatic tracking)
+  async trackMedia(url: string, type: 'image' | 'video'): Promise<void> {
+    const id = btoa(url).substring(0, 20); // Simple ID from URL
+    const asset: MediaAsset = { id, url, type, date: new Date().toISOString() };
+    await setDoc(doc(db, 'media', id), asset);
+  },
+
+  async getMediaLibrary(): Promise<MediaAsset[]> {
+    const q = query(collection(db, 'media'), orderBy('date', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => doc.data() as MediaAsset);
+  },
+
+  // View Counter
+  async incrementView(collectionName: 'articles' | 'events', id: string): Promise<void> {
+    const ref = doc(db, collectionName, id);
+    const d = await getDoc(ref);
+    if (d.exists()) {
+      await updateDoc(ref, { views: (d.data().views || 0) + 1 });
+    }
   }
 };
 

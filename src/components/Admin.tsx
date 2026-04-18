@@ -30,10 +30,23 @@ import {
   Map as MapIcon,
   Info,
   Facebook,
-  Twitter
+  Twitter,
+  Users,
+  AlertTriangle,
+  Megaphone,
+  Globe,
+  Tag,
+  MonitorOff,
+  User,
+  Camera,
+  Type,
+  Bold,
+  Italic,
+  Link,
+  List as ListIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Article, Event, SiteSettings, Comment } from '../types';
+import { Article, Event, SiteSettings, Comment, Subscriber, MediaAsset } from '../types';
 import { cn } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -71,6 +84,8 @@ export const AdminDashboard = ({
   articles, 
   events,
   comments,
+  subscribers,
+  mediaLibrary,
   settings,
   onEditArticle,
   onEditEvent, 
@@ -86,6 +101,8 @@ export const AdminDashboard = ({
   articles: Article[], 
   events: Event[],
   comments: Comment[],
+  subscribers: Subscriber[],
+  mediaLibrary: MediaAsset[],
   settings: SiteSettings,
   onEditArticle: (a: Article) => void,
   onEditEvent: (e: Event) => void,
@@ -98,9 +115,10 @@ export const AdminDashboard = ({
   onLogout: () => void,
   onGenerateCode: () => void
 }) => {
-  const [activeTab, setActiveTab] = useState<'articles' | 'events' | 'comments' | 'settings'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'events' | 'comments' | 'subscribers' | 'media' | 'settings'>('articles');
   const [searchTerm, setSearchTerm] = useState('');
   const [tempSettings, setTempSettings] = useState<SiteSettings>(settings);
+  const [newCategory, setNewCategory] = useState('');
   
   const filteredArticles = articles.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -117,6 +135,9 @@ export const AdminDashboard = ({
     c.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredSubscribers = subscribers.filter(s => s.email.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredMedia = mediaLibrary.filter(m => m.url.toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <div className="max-w-6xl mx-auto py-10 px-4 space-y-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -126,7 +147,7 @@ export const AdminDashboard = ({
           </div>
           <div>
             <h2 className="text-4xl font-black tracking-tight">Tableau de Bord</h2>
-            <p className="text-slate-400 text-sm">Gérez vos articles, événements, commentaires et infos du site.</p>
+            <p className="text-slate-400 text-sm">Contrôle total : articles, événements, commentaires, SEO et paramètres.</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -157,7 +178,7 @@ export const AdminDashboard = ({
         <button 
           onClick={() => setActiveTab('articles')}
           className={cn(
-            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
+            "px-6 py-4 font-black transition-all border-b-2 shrink-0 text-sm",
             activeTab === 'articles' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
           )}
         >
@@ -166,29 +187,47 @@ export const AdminDashboard = ({
         <button 
           onClick={() => setActiveTab('events')}
           className={cn(
-            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
+            "px-6 py-4 font-black transition-all border-b-2 shrink-0 text-sm",
             activeTab === 'events' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
           )}
         >
-          Événements & Culture
+          Agenda
         </button>
         <button 
           onClick={() => setActiveTab('comments')}
           className={cn(
-            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
+            "px-6 py-4 font-black transition-all border-b-2 shrink-0 text-sm",
             activeTab === 'comments' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
           )}
         >
-          Commentaires
+          Modération
+        </button>
+        <button 
+          onClick={() => setActiveTab('subscribers')}
+          className={cn(
+            "px-6 py-4 font-black transition-all border-b-2 shrink-0 text-sm",
+            activeTab === 'subscribers' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+          )}
+        >
+          Abonnés
+        </button>
+        <button 
+          onClick={() => setActiveTab('media')}
+          className={cn(
+            "px-6 py-4 font-black transition-all border-b-2 shrink-0 text-sm",
+            activeTab === 'media' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+          )}
+        >
+          Médias
         </button>
         <button 
           onClick={() => setActiveTab('settings')}
           className={cn(
-            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
+            "px-6 py-4 font-black transition-all border-b-2 shrink-0 text-sm",
             activeTab === 'settings' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
           )}
         >
-          Configuration Site
+          Paramètres
         </button>
       </div>
 
@@ -211,89 +250,223 @@ export const AdminDashboard = ({
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-8"
+              className="space-y-6 pb-20"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Email Contact</label>
-                  <div className="relative">
-                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              {/* Infos Contact */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-8">
+                <h3 className="text-xl font-black flex items-center gap-2"><Mail className="text-primary" /> Coordonnées du Site</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Email Contact</label>
                     <input 
                       type="email"
-                      className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full bg-slate-50 rounded-2xl px-6 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                       value={tempSettings.email}
                       onChange={(e) => setTempSettings({...tempSettings, email: e.target.value})}
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Téléphone</label>
-                  <div className="relative">
-                    <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Téléphone</label>
                     <input 
                       type="text"
-                      className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full bg-slate-50 rounded-2xl px-6 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
                       value={tempSettings.phone}
                       onChange={(e) => setTempSettings({...tempSettings, phone: e.target.value})}
                     />
                   </div>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Adresse Physique</label>
-                  <div className="relative">
-                    <MapIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input 
-                      type="text"
-                      className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                      value={tempSettings.address}
-                      onChange={(e) => setTempSettings({...tempSettings, address: e.target.value})}
-                    />
-                  </div>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Réseaux Sociaux (URLs)</label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="relative">
-                      <Facebook size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600" />
-                      <input 
-                        type="text"
-                        placeholder="Lien Facebook"
-                        className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-xs outline-none focus:ring-2 focus:ring-primary/20"
-                        value={tempSettings.facebookUrl || ''}
-                        onChange={(e) => setTempSettings({...tempSettings, facebookUrl: e.target.value})}
-                      />
-                    </div>
-                    <div className="relative">
-                      <Twitter size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-500" />
-                      <input 
-                        type="text"
-                        placeholder="Lien Twitter"
-                        className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-xs outline-none focus:ring-2 focus:ring-primary/20"
-                        value={tempSettings.twitterUrl || ''}
-                        onChange={(e) => setTempSettings({...tempSettings, twitterUrl: e.target.value})}
-                      />
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Réseaux Sociaux</label>
+                    <div className="grid grid-cols-3 gap-4">
+                      <input type="text" placeholder="Facebook URL" className="bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none" value={tempSettings.facebookUrl} onChange={e => setTempSettings({...tempSettings, facebookUrl: e.target.value})} />
+                      <input type="text" placeholder="Twitter URL" className="bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none" value={tempSettings.twitterUrl} onChange={e => setTempSettings({...tempSettings, twitterUrl: e.target.value})} />
+                      <input type="text" placeholder="Instagram URL" className="bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none" value={tempSettings.instagramUrl} onChange={e => setTempSettings({...tempSettings, instagramUrl: e.target.value})} />
                     </div>
                   </div>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Texte "À propos" (Markdown autorisé)</label>
-                  <textarea 
-                    className="w-full bg-slate-50 rounded-2xl px-6 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-h-[200px] resize-y"
-                    value={tempSettings.aboutText}
-                    onChange={(e) => setTempSettings({...tempSettings, aboutText: e.target.value})}
-                  />
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              {/* Breaking News Banner */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6">
+                <h3 className="text-xl font-black flex items-center gap-2 text-red-500"><Megaphone /> Bandeau Urgent</h3>
+                <div className="flex items-center gap-4 bg-red-50 p-4 rounded-2xl border border-red-100">
+                  <input 
+                    type="checkbox" 
+                    checked={tempSettings.urgentBannerActive}
+                    onChange={e => setTempSettings({...tempSettings, urgentBannerActive: e.target.checked})}
+                    className="w-6 h-6 accent-red-500"
+                  />
+                  <div className="flex-1 space-y-2">
+                    <label className="text-[10px] font-black uppercase text-red-700">Activer le bandeau d'alerte en haut du site</label>
+                    <input 
+                      type="text" 
+                      placeholder="Texte du message urgent..."
+                      className="w-full bg-white rounded-xl px-4 py-3 text-sm outline-none border border-red-200"
+                      value={tempSettings.urgentBannerText}
+                      onChange={e => setTempSettings({...tempSettings, urgentBannerText: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Maintenance Mode */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6">
+                <h3 className="text-xl font-black flex items-center gap-2 text-slate-700"><MonitorOff /> Mode Maintenance</h3>
+                <div className={cn(
+                  "flex items-center gap-4 p-4 rounded-2xl border transition-colors",
+                  tempSettings.maintenanceMode ? "bg-slate-100 border-slate-300" : "bg-emerald-50 border-emerald-100"
+                )}>
+                  <input 
+                    type="checkbox" 
+                    checked={tempSettings.maintenanceMode}
+                    onChange={e => setTempSettings({...tempSettings, maintenanceMode: e.target.checked})}
+                    className="w-6 h-6 accent-slate-900"
+                  />
+                  <div>
+                    <p className="text-sm font-bold">Le site est {tempSettings.maintenanceMode ? "Hors ligne (Maintenance)" : "En ligne"}</p>
+                    <p className="text-[10px] text-slate-500">Activez ce mode pour suspendre l'accès public durant des travaux.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* À Propos */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black flex items-center gap-2"><Info className="text-primary" /> À propos du Journal</h3>
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const textarea = document.querySelector('textarea[name="aboutText"]') as HTMLTextAreaElement;
+                        if (!textarea) return;
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = textarea.value;
+                        const selectedText = text.substring(start, end);
+                        const newText = text.substring(0, start) + `**${selectedText}**` + text.substring(end);
+                        setTempSettings({...tempSettings, aboutText: newText});
+                      }}
+                      className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-500"
+                      title="Gras"
+                    >
+                      <Bold size={16} />
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const textarea = document.querySelector('textarea[name="aboutText"]') as HTMLTextAreaElement;
+                        if (!textarea) return;
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = textarea.value;
+                        const selectedText = text.substring(start, end);
+                        const newText = text.substring(0, start) + `\n### ${selectedText}` + text.substring(end);
+                        setTempSettings({...tempSettings, aboutText: newText});
+                      }}
+                      className="px-2 py-1 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-500 text-[10px] font-black"
+                      title="Titre"
+                    >
+                      H3
+                    </button>
+                  </div>
+                </div>
+                <textarea 
+                  name="aboutText"
+                  value={tempSettings.aboutText}
+                  onChange={e => setTempSettings({...tempSettings, aboutText: e.target.value})}
+                  className="w-full bg-slate-50 rounded-2xl px-6 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-h-[200px]"
+                  placeholder="Décrivez votre journal, sa mission, son équipe..."
+                />
+              </div>
+
+              {/* Ads Configuration */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6">
+                <h3 className="text-xl font-black flex items-center gap-2"><Globe /> Emplacements Publicitaires (JSON/HTML)</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <textarea placeholder="Ad Slot Header" className="bg-slate-100 rounded-xl p-4 text-xs font-mono h-24" value={tempSettings.adSlotHeader} onChange={e => setTempSettings({...tempSettings, adSlotHeader: e.target.value})} />
+                  <textarea placeholder="Ad Slot Sidebar" className="bg-slate-100 rounded-xl p-4 text-xs font-mono h-24" value={tempSettings.adSlotSidebar} onChange={e => setTempSettings({...tempSettings, adSlotSidebar: e.target.value})} />
+                </div>
+              </div>
+
+              {/* Dynamic Categories */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-6">
+                <h3 className="text-xl font-black flex items-center gap-2"><Tag /> Gestion des Catégories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {tempSettings.categories?.map((cat, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-black">
+                      {cat}
+                      <button onClick={() => setTempSettings({...tempSettings, categories: tempSettings.categories.filter(c => c !== cat)})} className="text-red-500 hover:scale-110"><X size={14}/></button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Nouvelle catégorie..."
+                    value={newCategory}
+                    onChange={e => setNewCategory(e.target.value)}
+                    className="flex-1 bg-slate-50 rounded-xl px-4 py-2 text-sm outline-none border border-slate-100"
+                  />
+                  <button 
+                    onClick={() => {
+                      if(newCategory && !tempSettings.categories.includes(newCategory)) {
+                        setTempSettings({...tempSettings, categories: [...tempSettings.categories, newCategory]});
+                        setNewCategory('');
+                      }
+                    }}
+                    className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              </div>
+
+              <div className="sticky bottom-4 z-10 flex justify-end">
                 <button 
                   onClick={() => onSaveSettings(tempSettings)}
-                  className="bg-primary text-white font-black px-8 py-4 rounded-2xl hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                  className="bg-primary text-white font-black px-12 py-5 rounded-3xl hover:scale-105 transition-all shadow-2xl shadow-primary/40 flex items-center gap-3 border-4 border-white"
                 >
-                  <Save size={20} /> Sauvegarder la configuration
+                  <Save size={24} /> ENREGISTRER TOUTE LA CONFIGURATION
                 </button>
               </div>
             </motion.div>
+          ) : activeTab === 'subscribers' ? (
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
+               <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="font-black text-xl">Liste des Abonnés Newsletter</h3>
+                  <button className="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+                    <Copy size={14}/> Télécharger CSV
+                  </button>
+               </div>
+               <div className="divide-y divide-slate-100">
+                  {filteredSubscribers.map(sub => (
+                    <div key={sub.id} className="flex justify-between items-center px-8 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black">{sub.email[0].toUpperCase()}</div>
+                        <span className="text-sm font-medium">{sub.email}</span>
+                      </div>
+                      <span className="text-xs text-slate-400">{sub.date}</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          ) : activeTab === 'media' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredMedia.map(item => (
+                <div key={item.id} className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm group relative">
+                   <div className="aspect-square bg-slate-100">
+                      {item.type === 'image' ? (
+                        <img src={item.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-red-500"><Youtube size={32}/></div>
+                      )}
+                   </div>
+                   <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                       <button onClick={() => {navigator.clipboard.writeText(item.url); alert("Copié !")}} className="p-2 bg-white rounded-full text-slate-900"><Copy size={16}/></button>
+                       <button className="p-2 bg-white rounded-full text-red-500"><Trash size={16}/></button>
+                   </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
               <div className="grid grid-cols-12 px-6 py-4 bg-slate-50/50 border-bottom border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -456,11 +629,13 @@ export const AdminDashboard = ({
 export const AdminEditor = ({ 
   type,
   data, 
+  categories,
   onSave, 
   onCancel 
 }: { 
   type: 'article' | 'event',
   data: any, 
+  categories: string[],
   onSave: (d: any) => void, 
   onCancel: () => void 
 }) => {
@@ -473,10 +648,16 @@ export const AdminEditor = ({
     video: data.video || '',
     excerpt: data.excerpt || '',
     content: data.content || '',
+    imageCredit: data.imageCredit || '',
+    seoTitle: data.seoTitle || '',
+    seoDescription: data.seoDescription || '',
+    socialImage: data.socialImage || '',
     // Article specific
     ...(type === 'article' ? {
       category: data.category || 'Afrique',
       author: data.author || 'Équipe Akwaba Info',
+      authorRole: data.authorRole || 'Journaliste',
+      source: data.source || '',
       readingTime: data.readingTime || '4 min',
       views: data.views || 0,
       likes: data.likes || 0,
@@ -491,9 +672,13 @@ export const AdminEditor = ({
   
   const [previewMode, setPreviewMode] = useState(false);
 
-  const categories = type === 'article' 
-    ? ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech']
-    : ['Concert', 'Conférence', 'Exposition', 'Festival', 'Sport', 'Événement Culturel'];
+  // Fallback if categories is empty
+  const availableCategories = categories.length > 0 
+    ? categories 
+    : (type === 'article' 
+        ? ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech']
+        : ['Concert', 'Conférence', 'Exposition', 'Festival', 'Sport', 'Événement Culturel']
+      );
 
   return (
     <div className="max-w-6xl mx-auto py-10 px-4 space-y-8">
@@ -565,17 +750,110 @@ export const AdminEditor = ({
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Description / Contenu (Markdown)</label>
-                  <span className="text-[10px] text-primary font-bold">Le Markdown est activé</span>
+              <div className="space-y-4">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Contenu de la Rédaction</label>
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
+                          if (!textarea) return;
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = textarea.value;
+                          const selectedText = text.substring(start, end);
+                          const newText = text.substring(0, start) + `**${selectedText}**` + text.substring(end);
+                          setFormData({...formData, content: newText});
+                        }}
+                        className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-500"
+                        title="Gras"
+                      >
+                        <Bold size={16} />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
+                          if (!textarea) return;
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = textarea.value;
+                          const selectedText = text.substring(start, end);
+                          const newText = text.substring(0, start) + `*${selectedText}*` + text.substring(end);
+                          setFormData({...formData, content: newText});
+                        }}
+                        className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-500"
+                        title="Italique"
+                      >
+                        <Italic size={16} />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
+                          if (!textarea) return;
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = textarea.value;
+                          const selectedText = text.substring(start, end);
+                          const newText = text.substring(0, start) + `[${selectedText}](url)` + text.substring(end);
+                          setFormData({...formData, content: newText});
+                        }}
+                        className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-500"
+                        title="Lien"
+                      >
+                        <Link size={16} />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
+                          if (!textarea) return;
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = textarea.value;
+                          const selectedText = text.substring(start, end);
+                          const newText = text.substring(0, start) + `\n- ${selectedText}` + text.substring(end);
+                          setFormData({...formData, content: newText});
+                        }}
+                        className="p-2 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-500"
+                        title="Liste"
+                      >
+                        <ListIcon size={16} />
+                      </button>
+                      <div className="w-px h-4 bg-slate-200 mx-1" />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const textarea = document.querySelector('textarea[name="content"]') as HTMLTextAreaElement;
+                          if (!textarea) return;
+                          const start = textarea.selectionStart;
+                          const end = textarea.selectionEnd;
+                          const text = textarea.value;
+                          const selectedText = text.substring(start, end);
+                          const newText = text.substring(0, start) + `### ${selectedText}` + text.substring(end);
+                          setFormData({...formData, content: newText});
+                        }}
+                        className="px-2 py-1 hover:bg-white hover:text-primary rounded-lg transition-all text-slate-500 text-[10px] font-black"
+                        title="Titre"
+                      >
+                        H3
+                      </button>
+                    </div>
+                  </div>
+                  <textarea 
+                    name="content"
+                    value={formData.content}
+                    onChange={(e) => setFormData({...formData, content: e.target.value})}
+                    placeholder="Saisissez votre texte ici. Utilisez les boutons ci-dessus pour la mise en forme..."
+                    className="w-full bg-white border border-slate-100 rounded-3xl px-6 py-6 min-h-[500px] text-sm leading-relaxed outline-none focus:ring-2 focus:ring-primary/20 shadow-sm resize-y"
+                  />
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                    <Info size={12} /> Conseil : Séparez vos paragraphes par une ligne vide pour une meilleure lecture.
+                  </div>
                 </div>
-                <textarea 
-                  value={formData.content}
-                  onChange={(e) => setFormData({...formData, content: e.target.value})}
-                  placeholder="Décrivez votre contenu ici..."
-                  className="w-full bg-white border border-slate-100 rounded-3xl px-6 py-6 min-h-[500px] font-mono text-sm leading-relaxed outline-none focus:ring-2 focus:ring-primary/20 shadow-sm resize-y"
-                />
               </div>
             </div>
           )}
@@ -585,103 +863,186 @@ export const AdminEditor = ({
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-lg space-y-6">
             <h4 className="font-black text-sm uppercase tracking-widest">Métadonnées</h4>
             
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Slug (URL)</label>
-                <input 
-                  type="text" 
-                  value={formData.slug}
-                  onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
-                  placeholder="titre-de-l-element"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Catégorie</label>
-                <select 
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value as any})}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10 appearance-none font-bold italic"
-                >
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              {type === 'event' && (
+            <div className="space-y-6">
+              {/* --- Section: Général --- */}
+              <div className="space-y-4 border-b border-slate-50 pb-6">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-widest"><Info size={14}/> Infos Générales</div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lieu</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Slug (URL)</label>
+                  <input 
+                    type="text" 
+                    value={formData.slug}
+                    onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                    placeholder="titre-de-l-element"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Catégorie</label>
+                  <select 
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value as any})}
+                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10 appearance-none font-bold italic text-primary"
+                  >
+                    {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date de Publication</label>
                   <div className="relative">
-                    <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="date" 
+                      value={formData.date}
+                      onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                    />
+                  </div>
+                </div>
+                {type === 'event' && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lieu de l'événement</label>
+                    <div className="relative">
+                      <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input 
+                        type="text" 
+                        value={formData.location}
+                        onChange={(e) => setFormData({...formData, location: e.target.value})}
+                        className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                        placeholder="Ex: Cotonou, Bénin"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* --- Section: Rédaction --- */}
+              {type === 'article' && (
+                <div className="space-y-4 border-b border-slate-50 pb-6">
+                  <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest"><User size={14}/> La Rédaction</div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Nom de l'auteur</label>
                     <input 
                       type="text" 
-                      value={formData.location}
-                      onChange={(e) => setFormData({...formData, location: e.target.value})}
-                      className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
-                      placeholder="Ex: Cotonou, Bénin"
+                      value={formData.author}
+                      onChange={(e) => setFormData({...formData, author: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                      placeholder="Ex: Jean Dupont"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Rôle / Fonction</label>
+                    <input 
+                      type="text" 
+                      value={formData.authorRole || ''}
+                      onChange={(e) => setFormData({...formData, authorRole: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                      placeholder="Ex: Journaliste Reporter"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Source de l'information</label>
+                    <input 
+                      type="text" 
+                      value={(formData as Article).source || ''}
+                      onChange={(e) => setFormData({...formData, source: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                      placeholder="Ex: Agence Ivoirienne de Presse"
                     />
                   </div>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lien Image (Direct URL)</label>
-                <div className="relative">
-                  <Smartphone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="text" 
-                    value={formData.image || ''}
-                    onChange={(e) => setFormData({...formData, image: e.target.value})}
-                    className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lien YouTube (URL Vidéo)</label>
-                <div className="relative">
-                  <Youtube size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500" />
-                  <input 
-                    type="text" 
-                    value={formData.video || ''}
-                    onChange={(e) => setFormData({...formData, video: e.target.value})}
-                    className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                  />
-                </div>
-              </div>
-
-              {type === 'article' && (
+              {/* --- Section: Médias --- */}
+              <div className="space-y-4 border-b border-slate-50 pb-6">
+                <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest"><ImagePlus size={14}/> Médias & Source</div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Auteur</label>
-                  <input 
-                    type="text" 
-                    value={formData.author}
-                    onChange={(e) => setFormData({...formData, author: e.target.value})}
-                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
-                  />
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lien Image Principale</label>
+                  <div className="relative">
+                    <Smartphone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={formData.image || ''}
+                      onChange={(e) => setFormData({...formData, image: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
+                      placeholder="URL directe de l'image (https://...)"
+                    />
+                  </div>
                 </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</label>
-                <input 
-                  type="date" 
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
-                />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Source / Crédit Photo</label>
+                  <div className="relative">
+                    <Camera size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={formData.imageCredit || ''}
+                      onChange={(e) => setFormData({...formData, imageCredit: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                      placeholder="Ex: AFP / Justin Kpatcha"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lien Vidéo (YouTube)</label>
+                  <div className="relative">
+                    <Youtube size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500" />
+                    <input 
+                      type="text" 
+                      value={formData.video || ''}
+                      onChange={(e) => setFormData({...formData, video: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Résumé (Extrait)</label>
-                <textarea 
-                  value={formData.excerpt}
-                  onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10 min-h-[100px] resize-none"
-                  placeholder="Un court résumé..."
-                />
+              {/* --- Section: Résumé --- */}
+              <div className="space-y-4 border-b border-slate-50 pb-6">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-widest"><Type size={14}/> Accroche</div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Résumé (Extrait court)</label>
+                  <textarea 
+                    value={formData.excerpt}
+                    onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
+                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10 min-h-[100px] resize-none"
+                    placeholder="Un court résumé qui s'affichera sur la page d'accueil..."
+                  />
+                </div>
+              </div>
+
+              {/* --- Section: SEO --- */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-widest"><Globe size={14}/> Référencement (SEO)</div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Titre Google</label>
+                  <input 
+                    type="text" 
+                    value={formData.seoTitle || ''}
+                    onChange={(e) => setFormData({...formData, seoTitle: e.target.value})}
+                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10"
+                    placeholder="Titre pour les moteurs de recherche"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Méta Description</label>
+                  <textarea 
+                    value={formData.seoDescription || ''}
+                    onChange={(e) => setFormData({...formData, seoDescription: e.target.value})}
+                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-primary/10 h-20"
+                    placeholder="Méta description pour Google..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Image Partage Social</label>
+                  <input 
+                    type="text" 
+                    value={formData.socialImage || ''}
+                    onChange={(e) => setFormData({...formData, socialImage: e.target.value})}
+                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
+                    placeholder="URL image Facebook/Twitter"
+                  />
+                </div>
               </div>
             </div>
           </div>

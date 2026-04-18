@@ -27,7 +27,6 @@ service cloud.firestore {
     function isValidArticle(data) {
       return data.keys().hasAll(['id', 'slug', 'title', 'date', 'category', 'author', 'content']) &&
              data.id is string &&
-             data.category in ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech'] &&
              (!('image' in data) || data.image is string) &&
              (!('video' in data) || data.video is string);
     }
@@ -67,6 +66,18 @@ service cloud.firestore {
       allow read: if true;
       allow create: if true;
       allow update, delete: if isAdmin();
+    }
+
+    // Subscribers
+    match /subscribers/{subId} {
+      allow create: if true;
+      allow read, delete, update: if isAdmin();
+    }
+
+    // Media Library
+    match /media/{mediaId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Connection Test
