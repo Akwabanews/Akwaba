@@ -6,6 +6,8 @@ export interface Article {
   category: string;
   image?: string;
   video?: string;
+  audioUrl?: string; // Podcast/Audio support
+  gallery?: string[]; // Multiple photos
   author: string;
   authorRole?: string;
   excerpt: string;
@@ -15,8 +17,11 @@ export interface Article {
   source?: string;
   views: number;
   likes: number;
+  reactions?: Record<string, number>; // Emoji reactions
   commentsCount?: number;
   tags?: string[];
+  status: 'draft' | 'published';
+  scheduledAt?: string;
   // SEO & Social
   seoTitle?: string;
   seoDescription?: string;
@@ -42,9 +47,25 @@ export interface Event {
   category: string;
   image?: string;
   imageCredit?: string;
+  gallery?: string[];
   video?: string;
   excerpt: string;
   content: string;
+  status: 'draft' | 'published';
+  scheduledAt?: string;
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  options: {
+    id: string;
+    text: string;
+    votes: number;
+  }[];
+  startDate: string;
+  endDate?: string;
+  active: boolean;
 }
 
 export interface SiteSettings {

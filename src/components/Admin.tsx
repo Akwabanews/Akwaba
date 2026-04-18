@@ -43,7 +43,10 @@ import {
   Bold,
   Italic,
   Link,
-  List as ListIcon
+  List as ListIcon,
+  TrendingUp,
+  Mic,
+  Music
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Article, Event, SiteSettings, Comment, Subscriber, MediaAsset } from '../types';
@@ -115,7 +118,7 @@ export const AdminDashboard = ({
   onLogout: () => void,
   onGenerateCode: () => void
 }) => {
-  const [activeTab, setActiveTab] = useState<'articles' | 'events' | 'comments' | 'subscribers' | 'media' | 'settings'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'events' | 'comments' | 'subscribers' | 'media' | 'settings' | 'analytics'>('articles');
   const [searchTerm, setSearchTerm] = useState('');
   const [tempSettings, setTempSettings] = useState<SiteSettings>(settings);
   const [newCategory, setNewCategory] = useState('');
@@ -219,6 +222,15 @@ export const AdminDashboard = ({
           )}
         >
           Médias
+        </button>
+        <button 
+          onClick={() => setActiveTab('analytics')}
+          className={cn(
+            "px-6 py-4 font-black transition-all border-b-2 shrink-0 text-sm",
+            activeTab === 'analytics' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+          )}
+        >
+          Statistiques
         </button>
         <button 
           onClick={() => setActiveTab('settings')}
@@ -427,6 +439,81 @@ export const AdminDashboard = ({
                 >
                   <Save size={24} /> ENREGISTRER TOUTE LA CONFIGURATION
                 </button>
+              </div>
+            </motion.div>
+          ) : activeTab === 'analytics' ? (
+            <motion.div 
+              key="analytics"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="space-y-10"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-8 rounded-[35px] border border-slate-100 shadow-xl space-y-2">
+                  <div className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Total Vues</div>
+                  <div className="text-4xl font-black italic">{articles.reduce((acc, a) => acc + (a.views || 0), 0).toLocaleString()}</div>
+                  <div className="text-emerald-500 text-[10px] font-bold">+12% cette semaine</div>
+                </div>
+                <div className="bg-white p-8 rounded-[35px] border border-slate-100 shadow-xl space-y-2">
+                  <div className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Total Likes</div>
+                  <div className="text-4xl font-black italic">{articles.reduce((acc, a) => acc + (a.likes || 0), 0).toLocaleString()}</div>
+                  <div className="text-emerald-500 text-[10px] font-bold">+5% cette semaine</div>
+                </div>
+                <div className="bg-white p-8 rounded-[35px] border border-slate-100 shadow-xl space-y-2">
+                  <div className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Abonnés</div>
+                  <div className="text-4xl font-black italic">{subscribers.length.toLocaleString()}</div>
+                  <div className="text-emerald-500 text-[10px] font-bold">+24 nouveaux</div>
+                </div>
+              </div>
+
+              <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black italic">Performance par Catégorie</h3>
+                  <div className="flex gap-2">
+                    <span className="w-3 h-3 bg-primary rounded-full" />
+                    <span className="text-[10px] font-black uppercase text-slate-400">Vues Cumulées</span>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  {['Afrique', 'Monde', 'Politique', 'Tech', 'Sport'].map(cat => {
+                    const catArticles = articles.filter(a => a.category === cat);
+                    const catViews = catArticles.reduce((acc, a) => acc + (a.views || 0), 0);
+                    const percentage = Math.min(100, (catViews / 5000) * 100);
+                    return (
+                      <div key={cat} className="space-y-2">
+                        <div className="flex justify-between text-xs font-black uppercase tracking-widest">
+                          <span>{cat}</span>
+                          <span>{catViews.toLocaleString()} vues</span>
+                        </div>
+                        <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            className="h-full bg-primary"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-slate-900 p-10 rounded-[40px] shadow-2xl text-white space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-10">
+                  <TrendingUp size={120} />
+                </div>
+                <h3 className="text-xl font-black italic">Articles les plus performants</h3>
+                <div className="space-y-4">
+                  {articles.sort((a,b) => (b.views || 0) - (a.views || 0)).slice(0, 5).map((a, i) => (
+                    <div key={a.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl hover:bg-white/10 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <span className="text-primary font-black italic text-lg">#{i+1}</span>
+                        <span className="font-bold text-sm line-clamp-1">{a.title}</span>
+                      </div>
+                      <span className="text-xs font-black text-slate-400">{(a.views || 0).toLocaleString()} vues</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           ) : activeTab === 'subscribers' ? (
@@ -652,6 +739,10 @@ export const AdminEditor = ({
     seoTitle: data.seoTitle || '',
     seoDescription: data.seoDescription || '',
     socialImage: data.socialImage || '',
+    status: data.status || 'published',
+    scheduledAt: data.scheduledAt || '',
+    audioUrl: data.audioUrl || '',
+    gallery: data.gallery || [],
     // Article specific
     ...(type === 'article' ? {
       category: data.category || 'Afrique',
@@ -868,6 +959,38 @@ export const AdminEditor = ({
               <div className="space-y-4 border-b border-slate-50 pb-6">
                 <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-widest"><Info size={14}/> Infos Générales</div>
                 <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Statut de Publication</label>
+                  <div className="flex bg-slate-100 p-1 rounded-xl">
+                    <button 
+                      onClick={() => setFormData({...formData, status: 'published'})}
+                      className={cn(
+                        "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                        formData.status === 'published' ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "text-slate-500"
+                      )}
+                    >
+                      Publié
+                    </button>
+                    <button 
+                      onClick={() => setFormData({...formData, status: 'draft'})}
+                      className={cn(
+                        "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                        formData.status === 'draft' ? "bg-slate-500 text-white shadow-lg" : "text-slate-50"
+                      )}
+                    >
+                      Brouillon
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Planifier pour le (Optionnel)</label>
+                  <input 
+                    type="datetime-local" 
+                    value={formData.scheduledAt || ''}
+                    onChange={(e) => setFormData({...formData, scheduledAt: e.target.value})}
+                    className="w-full bg-slate-50 rounded-xl px-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
+                  />
+                </div>
+                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Slug (URL)</label>
                   <input 
                     type="text" 
@@ -992,6 +1115,19 @@ export const AdminEditor = ({
                       onChange={(e) => setFormData({...formData, video: e.target.value})}
                       className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
                       placeholder="https://www.youtube.com/watch?v=..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lien Audio (Podcast/MP3)</label>
+                  <div className="relative">
+                    <Check size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" />
+                    <input 
+                      type="text" 
+                      value={formData.audioUrl || ''}
+                      onChange={(e) => setFormData({...formData, audioUrl: e.target.value})}
+                      className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
+                      placeholder="URL directe du fichier audio (https://...)"
                     />
                   </div>
                 </div>

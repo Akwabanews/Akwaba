@@ -48,7 +48,7 @@ import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { MOCK_ARTICLES, MOCK_EVENTS } from './constants';
-import { Article, Comment, Event, SiteSettings, Subscriber, MediaAsset } from './types';
+import { Article, Comment, Event, SiteSettings, Subscriber, MediaAsset, Poll } from './types';
 import { cn, optimizeImage, getYoutubeId } from './lib/utils';
 import { AdminLogin, AdminDashboard, AdminEditor, ExportModal } from './components/Admin';
 import { FirestoreService, signInWithGoogle, auth } from './lib/firebase';
@@ -497,6 +497,118 @@ const GoogleAd = ({ className, label = "Annonce Google" }: { className?: string,
   </div>
 );
 
+const PollCard = ({ poll, onVote, hasVoted }: { poll: Poll, onVote: (optionId: string) => void, hasVoted: boolean }) => {
+  if (!poll) return null;
+  const totalVotes = poll.options.reduce((acc, curr) => acc + curr.votes, 0);
+
+  return (
+    <div className="bg-white border-2 border-primary/10 rounded-[35px] p-8 shadow-2xl space-y-6 relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-3 bg-primary/10 rounded-bl-[20px] text-primary font-black text-[10px] tracking-widest uppercase">Sondage</div>
+      <div className="flex gap-4">
+        <div className="p-3 bg-primary rounded-2xl text-white h-fit shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform">
+          <TrendingUp size={24} />
+        </div>
+        <h3 className="font-display font-black text-xl leading-tight">{poll.question}</h3>
+      </div>
+      
+      <div className="space-y-3">
+        {poll.options.map(option => {
+          const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+          return (
+            <button 
+              key={option.id}
+              disabled={hasVoted}
+              onClick={() => onVote(option.id)}
+              className="w-full text-left relative group/opt overflow-hidden rounded-2xl border border-slate-100 hover:border-primary/30 transition-all p-4"
+            >
+              <div 
+                className={cn(
+                  "absolute inset-0 transition-all duration-1000",
+                  hasVoted ? "bg-primary/5" : "bg-transparent group-hover/opt:bg-slate-50"
+                )}
+                style={{ width: hasVoted ? `${percentage}%` : '0%' }}
+              />
+              <div className="relative flex justify-between items-center text-sm">
+                <span className={cn("font-bold", hasVoted && "text-primary")}>{option.text}</span>
+                {hasVoted && <span className="font-black text-slate-400">{percentage}%</span>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {hasVoted && (
+        <p className="text-[10px] text-slate-400 font-bold text-center italic">
+          Merci pour votre participation ! ({totalVotes} votes au total)
+        </p>
+      )}
+    </div>
+  );
+};
+
+const WebTVView = ({ articles, onArticleClick }: { articles: Article[], onArticleClick: (a: Article) => void }) => {
+  const videoArticles = articles.filter(a => a.video);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-12 space-y-12">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-100 pb-10">
+        <div>
+          <h2 className="text-5xl font-display font-black tracking-tighter italic">WEB <span className="text-secondary">TV</span></h2>
+          <p className="text-slate-500 font-medium">L'actualité décryptée en images et en vidéos.</p>
+        </div>
+        <div className="flex bg-slate-100 p-1 rounded-2xl">
+          <button className="px-6 py-2 bg-white text-primary rounded-xl font-black text-xs shadow-sm uppercase tracking-widest">Récent</button>
+          <button className="px-6 py-2 text-slate-500 rounded-xl font-black text-xs uppercase tracking-widest">Populaire</button>
+        </div>
+      </div>
+
+      {videoArticles.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {videoArticles.map(article => (
+            <motion.div 
+              key={article.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -10 }}
+              className="bg-white rounded-[40px] overflow-hidden shadow-xl border border-slate-100 group cursor-pointer"
+              onClick={() => onArticleClick(article)}
+            >
+              <div className="relative aspect-video">
+                <img 
+                  src={optimizeImage(article.image || '', 800)} 
+                  alt={article.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white shadow-2xl scale-0 group-hover:scale-100 transition-transform duration-500">
+                    <TrendingUp size={32} />
+                  </div>
+                </div>
+                <div className="absolute top-4 left-4">
+                  <Badge category={article.category}>{article.category}</Badge>
+                </div>
+              </div>
+              <div className="p-8 space-y-4">
+                <h3 className="font-display font-black text-xl leading-tight line-clamp-2 group-hover:text-primary transition-colors">{article.title}</h3>
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-bold">
+                  <Clock size={14} />
+                  <span>{format(new Date(article.date), 'dd MMMM yyyy', { locale: fr })}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-slate-50 rounded-[40px] border-2 border-dotted border-slate-200">
+          <div className="flex flex-col items-center gap-4 opacity-50">
+            <MonitorOff size={64} className="text-slate-300" />
+            <p className="font-black text-slate-400 uppercase tracking-widest">Aucune vidéo disponible pour le moment</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 const ReadAlso = ({ currentArticle, articles, onArticleClick }: { currentArticle: Article, articles: Article[], onArticleClick: (a: Article) => void }) => {
   const related = articles
     .filter(a => a.id !== currentArticle.id && a.category === currentArticle.category)
@@ -642,9 +754,16 @@ const SplashScreen = ({ isDarkMode }: { isDarkMode: boolean }) => {
 };
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event' | 'all-events' | 'admin' | 'admin-login'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event' | 'all-events' | 'admin' | 'admin-login' | 'webtv'>(() => {
+    const saved = localStorage.getItem('akwaba_current_view');
+    // If it was an admin related view, we keep it to avoid redirecting away on refresh
+    if (saved === 'admin' || saved === 'admin-login') return saved as any;
+    return 'home';
+  });
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    return localStorage.getItem('akwaba_is_admin') === 'true';
+  });
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [adminArticles, setAdminArticles] = useState<Article[]>(() => {
     try {
@@ -669,7 +788,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    // Show splash only once per session
+    return !sessionStorage.getItem('akwaba_splash_shown');
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<string>('5000');
   const [selectedPayment, setSelectedPayment] = useState<'mobile' | 'card'>('mobile');
@@ -701,6 +823,28 @@ export default function App() {
   const [allComments, setAllComments] = useState<Comment[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [mediaLibrary, setMediaLibrary] = useState<MediaAsset[]>([]);
+  const [activePoll, setActivePoll] = useState<Poll | null>({
+    id: 'poll-1',
+    question: "Pensez-vous que la technologie peut transformer l'éducation en Afrique ?",
+    options: [
+      { id: '1', text: "Oui, absolument", votes: 450 },
+      { id: '2', text: "Peut-être, avec des moyens", votes: 230 },
+      { id: '3', text: "Non, pas encore", votes: 120 }
+    ],
+    startDate: new Date().toISOString(),
+    active: true
+  });
+  const [hasVoted, setHasVoted] = useState(false);
+
+  const handleVote = (optionId: string) => {
+    if (!activePoll || hasVoted) return;
+    const updatedOptions = activePoll.options.map(opt => 
+      opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
+    );
+    setActivePoll({ ...activePoll, options: updatedOptions });
+    setHasVoted(true);
+    setActiveNotification("Vote enregistré ! Merci.");
+  };
   
   // Persistence Logic
   const [articleComments, setArticleComments] = useState<Record<string, Comment[]>>(() => {
@@ -748,8 +892,10 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user && user.email === 'akwabanewsinfo@gmail.com') {
         setIsAdminAuthenticated(true);
+        localStorage.setItem('akwaba_is_admin', 'true');
       } else {
         setIsAdminAuthenticated(false);
+        localStorage.setItem('akwaba_is_admin', 'false');
       }
     });
 
@@ -1053,15 +1199,31 @@ export default function App() {
     const timer = setTimeout(() => {
       setIsLoading(false);
       // Keep splash a bit longer for the "welcome" effect
-      setTimeout(() => setShowSplash(false), 2000);
+      setTimeout(() => {
+        setShowSplash(false);
+        sessionStorage.setItem('akwaba_splash_shown', 'true');
+      }, 2000);
     }, 1500);
     return () => clearTimeout(timer);
   }, []);
 
-  const categories = siteSettings.categories || ['À la une', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport'];
+   const categories = siteSettings.categories || ['À la une', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport'];
+ 
+  const visibleArticles = isAdminAuthenticated 
+    ? adminArticles 
+    : adminArticles.filter(a => {
+        const isPublished = a.status === 'published';
+        const isNotScheduled = !a.scheduledAt || new Date(a.scheduledAt) <= new Date();
+        return isPublished && isNotScheduled;
+      });
 
-  const visibleArticles = adminArticles;
-  const visibleEvents = adminEvents;
+  const visibleEvents = isAdminAuthenticated 
+    ? adminEvents 
+    : adminEvents.filter(e => {
+        const isPublished = e.status === 'published';
+        const isNotScheduled = !e.scheduledAt || new Date(e.scheduledAt) <= new Date();
+        return isPublished && isNotScheduled;
+      });
 
   const filteredArticles = activeCategory === 'À la une' 
     ? visibleArticles 
@@ -1091,6 +1253,7 @@ export default function App() {
 
   const navigateTo = (view: typeof currentView) => {
     setCurrentView(view);
+    localStorage.setItem('akwaba_current_view', view);
     setSelectedArticle(null);
     setSelectedEvent(null);
     setIsMenuOpen(false);
@@ -1396,6 +1559,24 @@ export default function App() {
                 {cat}
               </button>
             ))}
+            <button 
+              onClick={() => navigateTo('webtv')}
+              className={cn(
+                "text-sm font-bold transition-colors hover:text-secondary whitespace-nowrap",
+                currentView === 'webtv' ? "text-secondary underline underline-offset-4" : "text-slate-500"
+              )}
+            >
+              Web TV
+            </button>
+            <button 
+              onClick={() => navigateTo('all-events')}
+              className={cn(
+                "text-sm font-bold transition-colors hover:text-primary whitespace-nowrap",
+                currentView === 'all-events' ? "text-primary underline underline-offset-4" : "text-slate-500"
+              )}
+            >
+              Agenda
+            </button>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -1502,6 +1683,12 @@ export default function App() {
                     </div>
                   )}
                 </div>
+                
+                {activePoll && (
+                  <div className="max-w-2xl mx-auto pt-10">
+                    <PollCard poll={activePoll} onVote={handleVote} hasVoted={hasVoted} />
+                  </div>
+                )}
                 
                 {filteredArticles.length > 0 && (
                   <div className="flex justify-center pt-8">
@@ -1613,6 +1800,24 @@ export default function App() {
                 </div>
               </div>
 
+              {selectedArticle.audioUrl && (
+                <div className="bg-slate-900 rounded-[30px] p-6 text-white shadow-2xl border border-white/10 mt-8 mb-4">
+                  <div className="flex items-center gap-6">
+                    <div className="p-4 bg-primary/20 rounded-2xl text-primary animate-pulse">
+                      <TrendingUp size={24} />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Audio / Podcast</p>
+                      <h4 className="font-bold text-sm italic">Écouter la version audio</h4>
+                      <audio controls className="w-full h-8 mt-2 accent-primary">
+                        <source src={selectedArticle.audioUrl} type="audio/mpeg" />
+                        Navigateur non supporté
+                      </audio>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {(selectedArticle.image || selectedArticle.video) && (
                 <div className="space-y-6">
                   {selectedArticle.video && getYoutubeId(selectedArticle.video) && (
@@ -1690,37 +1895,69 @@ export default function App() {
                       <Globe size={14} /> Source : {selectedArticle.source}
                     </div>
                   )}
-                  
-                  {/* Engagement */}
-                  <div className="mt-12 pt-8 border-t border-slate-100 flex flex-wrap items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
-                      <button 
-                        onClick={() => handleLikeArticle(selectedArticle.id)}
-                        className={cn(
-                          "flex items-center gap-2 transition-colors group",
-                          userLikedArticles.has(selectedArticle.id) ? "text-red-500" : "text-slate-500 hover:text-primary"
-                        )}
-                      >
-                        <div className={cn(
-                          "p-3 rounded-full transition-colors",
-                          userLikedArticles.has(selectedArticle.id) ? "bg-red-50" : "bg-slate-100 group-hover:bg-primary/10"
-                        )}>
-                          <Heart size={24} fill={userLikedArticles.has(selectedArticle.id) ? "currentColor" : "none"} />
-                        </div>
-                        <span className="font-bold">{(selectedArticle.likes || 0) + (articleLikes[selectedArticle.id] || 0)}</span>
-                      </button>
-                      <button className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group">
-                        <div className="p-3 rounded-full bg-slate-100 group-hover:bg-primary/10 transition-colors">
-                          <MessageSquare size={24} />
-                        </div>
-                        <span className="font-bold">{(selectedArticle.commentsCount || 0) + (articleComments[selectedArticle.id]?.length || 0)}</span>
-                      </button>
+
+                  {/* Engagement / Réactions */}
+                  <div className="mt-12 pt-8 border-t border-slate-100 space-y-8">
+                    <div className="flex flex-col items-center gap-6">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">Quelle est votre réaction ?</h4>
+                      <div className="flex flex-wrap justify-center gap-4">
+                        {[
+                          { icon: '🔥', label: 'Feu', key: 'fire' },
+                          { icon: '👏', label: 'Bravo', key: 'bravo' },
+                          { icon: '😮', label: 'Surpris', key: 'wow' },
+                          { icon: '😢', label: 'Triste', key: 'sad' },
+                          { icon: '🤨', label: 'Doute', key: 'think' }
+                        ].map((react) => (
+                          <button 
+                            key={react.key}
+                            onClick={() => {
+                              const currentReactions = selectedArticle.reactions || {};
+                              const newValue = (currentReactions[react.key] || 0) + 1;
+                              handleSaveArticle({
+                                ...selectedArticle,
+                                reactions: { ...currentReactions, [react.key]: newValue }
+                              });
+                              setActiveNotification(`Vous avez réagi avec ${react.icon} !`);
+                            }}
+                            className="bg-white border border-slate-100 px-6 py-3 rounded-2xl shadow-sm hover:shadow-md hover:border-primary/30 hover:-translate-y-1 transition-all flex flex-col items-center gap-1 group"
+                          >
+                            <span className="text-2xl group-hover:scale-125 transition-transform">{react.icon}</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase">{selectedArticle.reactions?.[react.key] || 0}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-slate-400 uppercase">Partager</span>
-                      <button className="p-3 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Twitter size={20} /></button>
-                      <button className="p-3 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Facebook size={20} /></button>
-                      <button className="p-3 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Share2 size={20} /></button>
+
+                    <div className="flex flex-wrap items-center justify-between gap-6 pt-8">
+                      <div className="flex items-center gap-6">
+                        <button 
+                          onClick={() => handleLikeArticle(selectedArticle.id)}
+                          className={cn(
+                            "flex items-center gap-2 transition-colors group",
+                            userLikedArticles.has(selectedArticle.id) ? "text-red-500" : "text-slate-500 hover:text-primary"
+                          )}
+                        >
+                          <div className={cn(
+                            "p-3 rounded-full transition-colors",
+                            userLikedArticles.has(selectedArticle.id) ? "bg-red-50" : "bg-slate-100 group-hover:bg-primary/10"
+                          )}>
+                            <Heart size={24} fill={userLikedArticles.has(selectedArticle.id) ? "currentColor" : "none"} />
+                          </div>
+                          <span className="font-bold">{(selectedArticle.likes || 0) + (articleLikes[selectedArticle.id] || 0)}</span>
+                        </button>
+                        <button className="flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group">
+                          <div className="p-3 rounded-full bg-slate-100 group-hover:bg-primary/10 transition-colors">
+                            <MessageSquare size={24} />
+                          </div>
+                          <span className="font-bold">{(selectedArticle.commentsCount || 0) + (articleComments[selectedArticle.id]?.length || 0)}</span>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-slate-400 uppercase">Partager</span>
+                        <button className="p-3 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Twitter size={20} /></button>
+                        <button className="p-3 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Facebook size={20} /></button>
+                        <button className="p-3 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Share2 size={20} /></button>
+                      </div>
                     </div>
                   </div>
 
@@ -2115,6 +2352,16 @@ export default function App() {
                   </div>
                 </>
               )}
+            </motion.div>
+          ) : currentView === 'webtv' ? (
+            <motion.div 
+              key="webtv"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+            >
+              <WebTVView articles={visibleArticles} onArticleClick={handleArticleClick} />
             </motion.div>
           ) : currentView === 'about' ? (
             <motion.div 

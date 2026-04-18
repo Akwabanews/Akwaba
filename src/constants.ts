@@ -33,6 +33,12 @@ export const MOCK_ARTICLES: Article[] = Object.entries(articleFiles).map(([path,
       likes: data.likes || 0,
       commentsCount: data.commentsCount || 0,
       tags: Array.isArray(data.tags) ? data.tags : (data.tags ? String(data.tags).split(',').map(t => t.trim()) : []),
+      status: data.status || 'published',
+      scheduledAt: data.scheduledAt || '',
+      audioUrl: data.audioUrl || '',
+      gallery: data.gallery || [],
+      source: data.source || '',
+      imageCredit: data.imageCredit || '',
     } as Article;
   } catch (error) {
     console.error(`Error parsing article at ${path}:`, error);
@@ -56,6 +62,10 @@ export const MOCK_EVENTS: Event[] = Object.entries(eventFiles).map(([path, conte
       video: data.video || undefined,
       excerpt: data.excerpt || '',
       content: body || '',
+      status: data.status || 'published',
+      scheduledAt: data.scheduledAt || '',
+      gallery: data.gallery || [],
+      imageCredit: data.imageCredit || '',
     } as Event;
   } catch (error) {
     console.error(`Error parsing event at ${path}:`, error);
