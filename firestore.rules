@@ -27,11 +27,15 @@ service cloud.firestore {
     function isValidArticle(data) {
       return data.keys().hasAll(['id', 'slug', 'title', 'date', 'category', 'author', 'content']) &&
              data.id is string &&
-             data.category in ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech'];
+             data.category in ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech'] &&
+             (!('image' in data) || data.image is string) &&
+             (!('video' in data) || data.video is string);
     }
 
     function isValidEvent(data) {
-      return data.keys().hasAll(['id', 'slug', 'title', 'date', 'location', 'category', 'content']);
+      return data.keys().hasAll(['id', 'slug', 'title', 'date', 'location', 'category', 'content']) &&
+             (!('image' in data) || data.image is string) &&
+             (!('video' in data) || data.video is string);
     }
 
     // --- COLLECTION RULES ---
@@ -50,6 +54,19 @@ service cloud.firestore {
       allow create: if isAdmin() && isValidId(eventId) && isValidEvent(incoming());
       allow update: if isAdmin() && (incoming().id == existing().id);
       allow delete: if isAdmin();
+    }
+
+    // Settings
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Comments
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if isAdmin();
     }
 
     // Connection Test

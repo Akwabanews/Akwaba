@@ -24,6 +24,7 @@ export interface Comment {
   content: string;
   likes: number;
   replies: Comment[];
+  articleId: string;
 }
 
 export interface Event {
@@ -37,4 +38,18 @@ export interface Event {
   video?: string;
   excerpt: string;
   content: string;
+}
+
+export interface SiteSettings {
+  aboutText: string;
+  email: string;
+  phone: string;
+  address: string;
+  facebookUrl?: string;
+  twitterUrl?: string;
+  instagramUrl?: string;
+}
+
+export interface SiteStats {
+  views: number;
 }

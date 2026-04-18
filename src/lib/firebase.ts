@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Article, Event } from '../types';
+import { Article, Event, SiteSettings, Comment } from '../types';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId || '(default)');
@@ -74,6 +74,26 @@ export const FirestoreService = {
 
   async deleteEvent(id: string): Promise<void> {
     await deleteDoc(doc(db, 'events', id));
+  },
+
+  // Settings
+  async getSettings(): Promise<SiteSettings | null> {
+    const d = await getDoc(doc(db, 'settings', 'global'));
+    return d.exists() ? d.data() as SiteSettings : null;
+  },
+
+  async saveSettings(settings: SiteSettings): Promise<void> {
+    await setDoc(doc(db, 'settings', 'global'), settings);
+  },
+
+  // Comments management
+  async getAllComments(): Promise<Comment[]> {
+    const snapshot = await getDocs(collection(db, 'comments'));
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Comment));
+  },
+
+  async deleteComment(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'comments', id));
   }
 };
 

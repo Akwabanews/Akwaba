@@ -44,8 +44,8 @@ import ReactMarkdown from 'react-markdown';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { MOCK_ARTICLES, MOCK_EVENTS } from './constants';
-import { Article, Comment, Event } from './types';
-import { cn, optimizeImage } from './lib/utils';
+import { Article, Comment, Event, SiteSettings } from './types';
+import { cn, optimizeImage, getYoutubeId } from './lib/utils';
 import { AdminLogin, AdminDashboard, AdminEditor, ExportModal } from './components/Admin';
 import { FirestoreService, signInWithGoogle, auth } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -443,10 +443,10 @@ const EventDetailView = ({ event, onBack }: { event: Event, onBack: () => void }
 
       {(event.image || event.video) && (
         <div className="space-y-6">
-          {event.video && (
+          {event.video && getYoutubeId(event.video) && (
             <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5 aspect-video">
               <iframe 
-                src={`https://www.youtube.com/embed/${event.video.split('v=')[1]?.split('&')[0] || event.video.split('/').pop()}`}
+                src={`https://www.youtube.com/embed/${getYoutubeId(event.video)}`}
                 title={event.title}
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -677,6 +677,15 @@ export default function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [activeNotification, setActiveNotification] = useState<string | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({
+    aboutText: "Akwaba Info est votre source de référence pour l'actualité en Afrique et dans le monde.",
+    email: "contact@akwabainfo.com",
+    phone: "+225 00 00 00 00",
+    address: "Abidjan, Côte d'Ivoire",
+    facebookUrl: "https://facebook.com",
+    twitterUrl: "https://twitter.com"
+  });
+  const [allComments, setAllComments] = useState<Comment[]>([]);
   
   // Persistence Logic
   const [articleComments, setArticleComments] = useState<Record<string, Comment[]>>(() => {
@@ -732,13 +741,17 @@ export default function App() {
     // Initial Data Fetch
     const fetchData = async () => {
       try {
-        const [cloudArticles, cloudEvents] = await Promise.all([
+        const [cloudArticles, cloudEvents, cloudSettings, cloudComments] = await Promise.all([
           FirestoreService.getArticles(),
-          FirestoreService.getEvents()
+          FirestoreService.getEvents(),
+          FirestoreService.getSettings(),
+          FirestoreService.getAllComments()
         ]);
         
         if (cloudArticles.length > 0) setAdminArticles(cloudArticles);
         if (cloudEvents.length > 0) setAdminEvents(cloudEvents);
+        if (cloudSettings) setSiteSettings(cloudSettings);
+        setAllComments(cloudComments);
         setIsCloudLoaded(true);
       } catch (error: any) {
         if (error.code === 'permission-denied') {
@@ -839,6 +852,30 @@ export default function App() {
     }
   };
 
+  const handleSaveSettings = async (settings: SiteSettings) => {
+    try {
+      await FirestoreService.saveSettings(settings);
+      setSiteSettings(settings);
+      setActiveNotification("Paramètres mis à jour !");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      alert("Erreur lors de la sauvegarde des paramètres.");
+    }
+  };
+
+  const handleDeleteComment = async (id: string) => {
+    if (confirm('Supprimer ce commentaire de façon permanente ?')) {
+      try {
+        await FirestoreService.deleteComment(id);
+        setAllComments(allComments.filter(c => c.id !== id));
+        setActiveNotification("Commentaire supprimé.");
+      } catch (error) {
+        console.error("Error deleting comment:", error);
+        alert("Erreur lors de la suppression.");
+      }
+    }
+  };
+
   const handleDeleteEvent = async (id: string) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cet événement du Cloud ?')) {
       try {
@@ -870,6 +907,7 @@ export default function App() {
       content: newCommentText,
       likes: 0,
       replies: [],
+      articleId: articleId
     };
 
     setArticleComments(prev => {
@@ -1518,10 +1556,10 @@ export default function App() {
 
               {(selectedArticle.image || selectedArticle.video) && (
                 <div className="space-y-6">
-                  {selectedArticle.video && (
+                  {selectedArticle.video && getYoutubeId(selectedArticle.video) && (
                     <div className="w-full rounded-3xl overflow-hidden shadow-2xl bg-slate-900/5 aspect-video">
                       <iframe 
-                        src={`https://www.youtube.com/embed/${selectedArticle.video.split('v=')[1]?.split('&')[0] || selectedArticle.video.split('/').pop()}`}
+                        src={`https://www.youtube.com/embed/${getYoutubeId(selectedArticle.video)}`}
                         title={selectedArticle.title}
                         className="w-full h-full"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -2022,56 +2060,9 @@ export default function App() {
               </button>
               <h2 className="text-4xl font-black">À propos d'Akwaba Info</h2>
               <div className="markdown-body space-y-6">
-                <p className="text-lg leading-relaxed">
-                  Akwaba Info est un site d’actualité proposant des articles variés et actualisés sur la politique, l’économie, la science, la santé, la culture, l’histoire et le sport. Il permet de suivre facilement l’actualité et d’obtenir des informations fiables en un seul clic.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
-                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <h3 className="text-xl font-black mb-4">Points forts</h3>
-                    <ul className="space-y-2 text-slate-600">
-                      <li>• Contenu diversifié et régulièrement mis à jour</li>
-                      <li>• Navigation facile grâce aux rubriques thématiques</li>
-                      <li>• Informations rédigées en français accessible à tous</li>
-                    </ul>
-                  </div>
-                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <h3 className="text-xl font-black mb-4">Notre Objectif</h3>
-                    <p className="text-slate-600">
-                      Informer et sensibiliser le public sur les événements et actualités importantes dans différents domaines, rapidement et efficacement.
-                    </p>
-                  </div>
-                </div>
-
-                <h3 className="text-2xl font-black">Ce qui nous distingue</h3>
-                <p>
-                  Akwaba Info se démarque par un positionnement éditorial centré sur une lecture du monde à partir des réalités africaines, tout en restant ouvert à l’actualité internationale. Contrairement aux médias généralistes classiques, nous mettons en avant :
-                </p>
-                <ul className="space-y-4">
-                  <li className="flex gap-4">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">1</div>
-                    <p><strong>Une priorité donnée aux contenus africains</strong> : actualité locale et régionale souvent peu représentée dans les grands médias internationaux.</p>
-                  </li>
-                  <li className="flex gap-4">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">2</div>
-                    <p><strong>Un traitement accessible et pédagogique</strong> : permettre à un large public de comprendre facilement des sujets complexes.</p>
-                  </li>
-                  <li className="flex gap-4">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">3</div>
-                    <p><strong>Une diversité thématique équilibrée</strong> : politique, économie, culture, histoire, etc., avec une attention particulière à l’impact concret sur les populations.</p>
-                  </li>
-                  <li className="flex gap-4">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 font-bold text-xs">4</div>
-                    <p><strong>Une vision positive</strong> : valoriser les initiatives, les innovations et les cultures africaines, et pas uniquement les crises ou faits négatifs.</p>
-                  </li>
-                </ul>
-
-                <div className="bg-primary text-white p-8 rounded-3xl mt-10">
-                  <h3 className="text-xl font-black mb-4 text-white">En résumé</h3>
-                  <p className="italic opacity-90">
-                    Akwaba Info n’est pas seulement un site d’actualité généraliste ; c’est un média qui propose une vision du monde ancrée en Afrique, avec un regard accessible, positif et éducatif, ce qui constitue sa véritable identité et sa différence.
-                  </p>
-                </div>
+                <ReactMarkdown>
+                  {siteSettings.aboutText}
+                </ReactMarkdown>
               </div>
             </motion.div>
           ) : currentView === 'privacy' ? (
@@ -2388,12 +2379,16 @@ Dernière mise à jour : Avril 2026
                 <AdminDashboard 
                   articles={adminArticles}
                   events={adminEvents}
+                  comments={allComments}
+                  settings={siteSettings}
                   onEditArticle={(a) => setEditingArticle(a)}
                   onEditEvent={(e) => setEditingEvent(e)}
                   onCreateArticle={() => setEditingArticle({ id: Date.now().toString(), date: new Date().toISOString().split('T')[0] } as any)}
                   onCreateEvent={() => setEditingEvent({ id: Date.now().toString(), date: new Date().toISOString().split('T')[0] } as any)}
                   onDeleteArticle={handleDeleteArticle}
                   onDeleteEvent={handleDeleteEvent}
+                  onDeleteComment={handleDeleteComment}
+                  onSaveSettings={handleSaveSettings}
                   onLogout={handleAdminLogout}
                   onGenerateCode={() => setShowExportModal(true)}
                 />
@@ -2436,12 +2431,21 @@ Dernière mise à jour : Avril 2026
               </h2>
             </div>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Akwaba Info est un site d’actualité proposant des articles variés et actualisés sur la politique, l’économie, la science, la santé, la culture, l’histoire et le sport. L’info du monde en un clic.
+              {siteSettings.aboutText.length > 200 
+                ? `${siteSettings.aboutText.substring(0, 197)}...` 
+                : siteSettings.aboutText}
             </p>
             <div className="flex gap-4">
-              <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Twitter size={20} /></button>
-              <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Facebook size={20} /></button>
-              <button className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all"><Linkedin size={20} /></button>
+              {siteSettings.twitterUrl && (
+                <a href={siteSettings.twitterUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all">
+                  <Twitter size={20} />
+                </a>
+              )}
+              {siteSettings.facebookUrl && (
+                <a href={siteSettings.facebookUrl} target="_blank" rel="noopener noreferrer" className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-primary hover:text-white transition-all">
+                  <Facebook size={20} />
+                </a>
+              )}
             </div>
           </div>
 
@@ -2466,8 +2470,12 @@ Dernière mise à jour : Avril 2026
 
           <div className="space-y-6">
             <h4 className="font-black text-sm uppercase tracking-widest">Contact</h4>
-            <p className="text-sm text-slate-500">10 rue ange Rubaud<br />94230 Cachan, France</p>
-            <p onClick={() => navigateTo('contact')} className="text-sm font-bold text-primary cursor-pointer hover:underline">akwabainfo229@gmail.com</p>
+            <div className="space-y-3 text-sm text-slate-500">
+              <p className="flex items-center gap-2 italic">{siteSettings.email}</p>
+              <p className="flex items-center gap-2 italic">{siteSettings.phone}</p>
+              <p className="flex items-center gap-2 italic">{siteSettings.address}</p>
+            </div>
+            <p onClick={() => navigateTo('contact')} className="text-sm font-bold text-primary cursor-pointer hover:underline">Formulaire de contact</p>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-slate-100 text-center text-xs text-slate-400">

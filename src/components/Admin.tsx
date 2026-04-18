@@ -20,10 +20,20 @@ import {
   X,
   Smartphone,
   MapPin,
-  LogIn
+  LogIn,
+  Youtube,
+  ImagePlus,
+  Video,
+  MessageSquare,
+  Mail,
+  Phone,
+  Map as MapIcon,
+  Info,
+  Facebook,
+  Twitter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Article, Event } from '../types';
+import { Article, Event, SiteSettings, Comment } from '../types';
 import { cn } from '../lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -60,28 +70,37 @@ export const AdminLogin = ({ onLogin }: { onLogin: () => void }) => {
 export const AdminDashboard = ({ 
   articles, 
   events,
+  comments,
+  settings,
   onEditArticle,
   onEditEvent, 
   onCreateArticle,
   onCreateEvent, 
   onDeleteArticle,
   onDeleteEvent, 
+  onDeleteComment,
+  onSaveSettings,
   onLogout,
   onGenerateCode 
 }: { 
   articles: Article[], 
   events: Event[],
+  comments: Comment[],
+  settings: SiteSettings,
   onEditArticle: (a: Article) => void,
   onEditEvent: (e: Event) => void,
   onCreateArticle: () => void,
   onCreateEvent: () => void,
   onDeleteArticle: (id: string) => void,
   onDeleteEvent: (id: string) => void,
+  onDeleteComment: (id: string) => void,
+  onSaveSettings: (s: SiteSettings) => void,
   onLogout: () => void,
   onGenerateCode: () => void
 }) => {
-  const [activeTab, setActiveTab] = useState<'articles' | 'events'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'events' | 'comments' | 'settings'>('articles');
   const [searchTerm, setSearchTerm] = useState('');
+  const [tempSettings, setTempSettings] = useState<SiteSettings>(settings);
   
   const filteredArticles = articles.filter(a => 
     a.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -93,6 +112,11 @@ export const AdminDashboard = ({
     e.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredComments = comments.filter(c => 
+    c.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.content.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="max-w-6xl mx-auto py-10 px-4 space-y-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -102,7 +126,7 @@ export const AdminDashboard = ({
           </div>
           <div>
             <h2 className="text-4xl font-black tracking-tight">Tableau de Bord</h2>
-            <p className="text-slate-400 text-sm">Gérez vos articles et événements culturels.</p>
+            <p className="text-slate-400 text-sm">Gérez vos articles, événements, commentaires et infos du site.</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -112,12 +136,14 @@ export const AdminDashboard = ({
           >
             <Copy size={18} /> Export Code
           </button>
-          <button 
-            onClick={activeTab === 'articles' ? onCreateArticle : onCreateEvent}
-            className="px-5 py-3 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-all flex items-center gap-2 text-sm shadow-lg shadow-primary/20"
-          >
-            <Plus size={18} /> {activeTab === 'articles' ? 'Nouvel Article' : 'Nouvel Événement'}
-          </button>
+          {(activeTab === 'articles' || activeTab === 'events') && (
+            <button 
+              onClick={activeTab === 'articles' ? onCreateArticle : onCreateEvent}
+              className="px-5 py-3 bg-primary text-white font-bold rounded-2xl hover:bg-primary/90 transition-all flex items-center gap-2 text-sm shadow-lg shadow-primary/20"
+            >
+              <Plus size={18} /> {activeTab === 'articles' ? 'Nouvel Article' : 'Nouvel Événement'}
+            </button>
+          )}
           <button 
             onClick={onLogout}
             className="p-3 bg-slate-100 text-slate-500 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all"
@@ -127,11 +153,11 @@ export const AdminDashboard = ({
         </div>
       </div>
 
-      <div className="flex border-b border-slate-100">
+      <div className="flex border-b border-slate-100 overflow-x-auto whitespace-nowrap scrollbar-hide">
         <button 
           onClick={() => setActiveTab('articles')}
           className={cn(
-            "px-8 py-4 font-black transition-all border-b-2",
+            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
             activeTab === 'articles' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
           )}
         >
@@ -140,37 +166,144 @@ export const AdminDashboard = ({
         <button 
           onClick={() => setActiveTab('events')}
           className={cn(
-            "px-8 py-4 font-black transition-all border-b-2",
+            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
             activeTab === 'events' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
           )}
         >
           Événements & Culture
         </button>
+        <button 
+          onClick={() => setActiveTab('comments')}
+          className={cn(
+            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
+            activeTab === 'comments' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+          )}
+        >
+          Commentaires
+        </button>
+        <button 
+          onClick={() => setActiveTab('settings')}
+          className={cn(
+            "px-8 py-4 font-black transition-all border-b-2 shrink-0",
+            activeTab === 'settings' ? "border-primary text-primary" : "border-transparent text-slate-400 hover:text-slate-600"
+          )}
+        >
+          Configuration Site
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="md:col-span-3 space-y-6">
-          <div className="relative">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-              type="text" 
-              placeholder={activeTab === 'articles' ? "Rechercher parmi les articles..." : "Rechercher parmi les événements..."}
-              className="w-full bg-white border border-slate-100 rounded-2xl pl-14 pr-6 py-4 shadow-sm focus:ring-2 focus:ring-primary/20 outline-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
-            <div className="grid grid-cols-12 px-6 py-4 bg-slate-50/50 border-bottom border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
-              <div className="col-span-6">{activeTab === 'articles' ? 'Article' : 'Événement'}</div>
-              <div className="col-span-2">{activeTab === 'articles' ? 'Catégorie' : 'Lieu'}</div>
-              <div className="col-span-2">Date</div>
-              <div className="col-span-2 text-right">Actions</div>
+          {activeTab !== 'settings' && (
+            <div className="relative">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input 
+                type="text" 
+                placeholder="Rechercher..."
+                className="w-full bg-white border border-slate-100 rounded-2xl pl-14 pr-6 py-4 shadow-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <div className="divide-y divide-slate-100">
-              {activeTab === 'articles' ? (
-                filteredArticles.map(article => (
+          )}
+
+          {activeTab === 'settings' ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl border border-slate-100 shadow-xl p-8 space-y-8"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Email Contact</label>
+                  <div className="relative">
+                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="email"
+                      className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                      value={tempSettings.email}
+                      onChange={(e) => setTempSettings({...tempSettings, email: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Téléphone</label>
+                  <div className="relative">
+                    <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text"
+                      className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                      value={tempSettings.phone}
+                      onChange={(e) => setTempSettings({...tempSettings, phone: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Adresse Physique</label>
+                  <div className="relative">
+                    <MapIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text"
+                      className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                      value={tempSettings.address}
+                      onChange={(e) => setTempSettings({...tempSettings, address: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Réseaux Sociaux (URLs)</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="relative">
+                      <Facebook size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600" />
+                      <input 
+                        type="text"
+                        placeholder="Lien Facebook"
+                        className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                        value={tempSettings.facebookUrl || ''}
+                        onChange={(e) => setTempSettings({...tempSettings, facebookUrl: e.target.value})}
+                      />
+                    </div>
+                    <div className="relative">
+                      <Twitter size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-sky-500" />
+                      <input 
+                        type="text"
+                        placeholder="Lien Twitter"
+                        className="w-full bg-slate-50 rounded-2xl pl-11 pr-4 py-4 text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                        value={tempSettings.twitterUrl || ''}
+                        onChange={(e) => setTempSettings({...tempSettings, twitterUrl: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Texte "À propos" (Markdown autorisé)</label>
+                  <textarea 
+                    className="w-full bg-slate-50 rounded-2xl px-6 py-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-h-[200px] resize-y"
+                    value={tempSettings.aboutText}
+                    onChange={(e) => setTempSettings({...tempSettings, aboutText: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button 
+                  onClick={() => onSaveSettings(tempSettings)}
+                  className="bg-primary text-white font-black px-8 py-4 rounded-2xl hover:scale-105 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+                >
+                  <Save size={20} /> Sauvegarder la configuration
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-xl overflow-hidden">
+              <div className="grid grid-cols-12 px-6 py-4 bg-slate-50/50 border-bottom border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <div className="col-span-6">Nom / Titre</div>
+                <div className="col-span-2">{activeTab === 'articles' ? 'Catégorie' : activeTab === 'events' ? 'Lieu' : 'Date'}</div>
+                <div className="col-span-2">Date / Likes</div>
+                <div className="col-span-2 text-right">Actions</div>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {activeTab === 'articles' && filteredArticles.map(article => (
                   <div key={article.id} className="grid grid-cols-12 px-6 py-4 items-center hover:bg-slate-50/50 transition-colors group">
                     <div className="col-span-6 flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
@@ -181,10 +314,8 @@ export const AdminDashboard = ({
                         <p className="text-[10px] text-slate-400 font-medium">Par {article.author}</p>
                       </div>
                     </div>
-                    <div className="col-span-2">
-                      <span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded-lg text-slate-600 italic line-clamp-1">
-                        {article.category}
-                      </span>
+                    <div className="col-span-2 text-xs font-bold text-slate-600 italic">
+                      {article.category}
                     </div>
                     <div className="col-span-2 text-xs text-slate-500 font-mono">
                       {article.date}
@@ -204,9 +335,9 @@ export const AdminDashboard = ({
                       </button>
                     </div>
                   </div>
-                ))
-              ) : (
-                filteredEvents.map(event => (
+                ))}
+
+                {activeTab === 'events' && filteredEvents.map(event => (
                   <div key={event.id} className="grid grid-cols-12 px-6 py-4 items-center hover:bg-slate-50/50 transition-colors group">
                     <div className="col-span-6 flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100">
@@ -217,10 +348,8 @@ export const AdminDashboard = ({
                         <p className="text-[10px] text-slate-400 font-medium">{event.category}</p>
                       </div>
                     </div>
-                    <div className="col-span-2">
-                      <span className="text-xs font-bold text-slate-600 line-clamp-1 flex items-center gap-1">
-                        <MapPin size={10} /> {event.location}
-                      </span>
+                    <div className="col-span-2 text-xs font-bold text-slate-600 line-clamp-1">
+                      {event.location}
                     </div>
                     <div className="col-span-2 text-xs text-slate-500 font-mono">
                       {event.date}
@@ -240,18 +369,47 @@ export const AdminDashboard = ({
                       </button>
                     </div>
                   </div>
-                ))
-              )}
-              {((activeTab === 'articles' && filteredArticles.length === 0) || (activeTab === 'events' && filteredEvents.length === 0)) && (
-                <div className="py-20 text-center space-y-4">
-                  <div className="p-4 bg-slate-50 w-20 h-20 rounded-full mx-auto flex items-center justify-center text-slate-200">
-                    <FileText size={40} />
+                ))}
+
+                {activeTab === 'comments' && filteredComments.map(comment => (
+                  <div key={comment.id} className="grid grid-cols-12 px-6 py-4 items-start hover:bg-slate-50/50 transition-colors group">
+                    <div className="col-span-6 space-y-2 pr-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900">{comment.username}</span>
+                        <span className="text-[10px] text-slate-400">• {(comment as any).articleTitle || 'Article inconnu'}</span>
+                      </div>
+                      <p className="text-xs text-slate-600 italic line-clamp-2">"{comment.content}"</p>
+                    </div>
+                    <div className="col-span-2 text-xs text-slate-500 font-mono mt-1">
+                      {comment.date}
+                    </div>
+                    <div className="col-span-2 text-xs text-slate-400 mt-1">
+                      {comment.likes} J'aime
+                    </div>
+                    <div className="col-span-2 flex justify-end gap-2 pr-2">
+                      <button 
+                        onClick={() => onDeleteComment(comment.id)}
+                        className="p-2 bg-slate-50 text-red-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all"
+                      >
+                        <Trash size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-slate-400 font-medium italic">Aucun contenu trouvé.</p>
-                </div>
-              )}
+                ))}
+
+                {((activeTab === 'articles' && filteredArticles.length === 0) || 
+                  (activeTab === 'events' && filteredEvents.length === 0) || 
+                  (activeTab === 'comments' && filteredComments.length === 0)) && (
+                  <div className="py-20 text-center space-y-4">
+                    <div className="p-4 bg-slate-50 w-20 h-20 rounded-full mx-auto flex items-center justify-center text-slate-200">
+                      <FileText size={40} />
+                    </div>
+                    <p className="text-slate-400 font-medium italic">Aucun contenu trouvé.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -263,8 +421,8 @@ export const AdminDashboard = ({
                 <p className="text-3xl font-black mt-1 font-mono tracking-tighter">{articles.length}</p>
               </div>
               <div className="bg-white/5 p-4 rounded-2xl">
-                <p className="text-[10px] font-bold uppercase text-slate-400">Total Événements</p>
-                <p className="text-3xl font-black mt-1 font-mono tracking-tighter">{events.length}</p>
+                <p className="text-[10px] font-bold uppercase text-slate-400">Commentaires</p>
+                <p className="text-3xl font-black mt-1 font-mono tracking-tighter">{comments.length}</p>
               </div>
             </div>
           </div>
@@ -272,18 +430,21 @@ export const AdminDashboard = ({
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-lg space-y-4">
             <div className="flex items-center gap-3 text-slate-900">
               <Settings size={20} />
-              <h4 className="font-bold">Paramètres</h4>
+              <h4 className="font-bold">Accès Rapide</h4>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed italic">
-              Vous êtes actuellement en mode <strong>"Static Publisher"</strong>. Les changements sont sauvegardés dans votre navigateur.
-            </p>
-            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
-              <p className="text-[10px] text-emerald-700 font-bold leading-tight uppercase mb-1 flex items-center gap-1">
-                ✅ Connecté au Cloud
-              </p>
-              <p className="text-[10px] text-emerald-600 leading-tight">
-                Vos modifications sont désormais publiées en temps réel sur le site.
-              </p>
+            <div className="space-y-2">
+              <button 
+                onClick={() => setActiveTab('settings')}
+                className="w-full text-left px-4 py-3 bg-slate-50 rounded-xl hover:bg-primary/5 hover:text-primary transition-all text-xs font-bold flex items-center gap-2"
+              >
+                <Info size={14} /> Modifier "À Propos"
+              </button>
+              <button 
+                onClick={() => setActiveTab('comments')}
+                className="w-full text-left px-4 py-3 bg-slate-50 rounded-xl hover:bg-primary/5 hover:text-primary transition-all text-xs font-bold flex items-center gap-2"
+              >
+                <MessageSquare size={14} /> Modération Globale
+              </button>
             </div>
           </div>
         </div>
@@ -309,6 +470,7 @@ export const AdminEditor = ({
     title: data.title || '',
     date: data.date || new Date().toISOString().split('T')[0],
     image: data.image || '',
+    video: data.video || '',
     excerpt: data.excerpt || '',
     content: data.content || '',
     // Article specific
@@ -318,6 +480,7 @@ export const AdminEditor = ({
       readingTime: data.readingTime || '4 min',
       views: data.views || 0,
       likes: data.likes || 0,
+      tags: data.tags || [],
     } : {
       // Event specific
       location: data.location || '',
@@ -329,7 +492,7 @@ export const AdminEditor = ({
   const [previewMode, setPreviewMode] = useState(false);
 
   const categories = type === 'article' 
-    ? ['Afrique', 'Monde', 'Économie', 'Politique', 'Tech', 'Culture', 'Urgent']
+    ? ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech']
     : ['Concert', 'Conférence', 'Exposition', 'Festival', 'Sport', 'Événement Culturel'];
 
   return (
@@ -369,6 +532,14 @@ export const AdminEditor = ({
               {formData.image && (
                 <div className="aspect-video rounded-2xl overflow-hidden mb-8">
                   <img src={formData.image} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </div>
+              )}
+              {formData.video && (
+                <div className="aspect-video rounded-2xl overflow-hidden mb-8 bg-black flex items-center justify-center text-white">
+                  <div className="text-center space-y-2">
+                    <Youtube size={48} className="mx-auto text-red-500" />
+                    <p className="text-xs font-bold">Vidéo YouTube configurée</p>
+                  </div>
                 </div>
               )}
               {type === 'event' && (
@@ -454,15 +625,29 @@ export const AdminEditor = ({
               )}
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">URL de l'image</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lien Image (Direct URL)</label>
                 <div className="relative">
                   <Smartphone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input 
                     type="text" 
-                    value={formData.image}
+                    value={formData.image || ''}
                     onChange={(e) => setFormData({...formData, image: e.target.value})}
                     className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lien YouTube (URL Vidéo)</label>
+                <div className="relative">
+                  <Youtube size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500" />
+                  <input 
+                    type="text" 
+                    value={formData.video || ''}
+                    onChange={(e) => setFormData({...formData, video: e.target.value})}
+                    className="w-full bg-slate-50 rounded-xl pl-9 pr-4 py-3 text-[10px] outline-none focus:ring-2 focus:ring-primary/10"
+                    placeholder="https://www.youtube.com/watch?v=..."
                   />
                 </div>
               </div>
@@ -480,7 +665,7 @@ export const AdminEditor = ({
               )}
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date {type === 'article' ? "de publication" : "de l'événement"}</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</label>
                 <input 
                   type="date" 
                   value={formData.date}
