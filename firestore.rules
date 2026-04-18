@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. PUBLIC READ ACCESS (For articles and events only)
+    match /articles/{articleId} {
+      allow read: if true;
+    }
+    match /events/{eventId} {
+      allow read: if true;
+    }
+    match /test_connection/ping {
+      allow read: if true;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // Relaxing verification check slightly for initial setup if needed, 
+      // but keeping email check strict.
+      return isSignedIn() && request.auth.token.email == 'akwabanewsinfo@gmail.com';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+    function isValidArticle(data) {
+      return data.keys().hasAll(['id', 'slug', 'title', 'date', 'category', 'author', 'content']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.slug is string && data.slug.size() <= 200 &&
+             data.title is string && data.title.size() <= 300 &&
+             data.date is string &&
+             data.category in ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport', 'Afrique', 'Monde', 'Tech'] &&
+             data.author is string && data.author.size() <= 100 &&
+             data.content is string && data.content.size() <= 1000000 && // 1MB limit
+             (!('views' in data) || data.views is number) &&
+             (!('likes' in data) || data.likes is number);
+    }
+
+    function isValidEvent(data) {
+      return data.keys().hasAll(['id', 'slug', 'title', 'date', 'location', 'category', 'content']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 300 &&
+             data.location is string && data.location.size() <= 200 &&
+             data.content is string && data.content.size() <= 500000;
+    }
+
+    // --- Rules ---
+    // (Handled above for public read)
+
+    match /articles/{articleId} {
+      allow create: if isAdmin() && isValidId(articleId) && isValidArticle(incoming());
+      
+      allow update: if isAdmin() && isValidArticle(incoming()) && (
+        // Identity Integrity: Ensure ID and Slug don't change if not explicitly allowed
+        incoming().id == existing().id &&
+        // Action: standard edit
+        incoming().diff(existing()).affectedKeys().hasAny(['title', 'content', 'category', 'image', 'video', 'excerpt', 'readingTime', 'tags', 'views', 'likes', 'date'])
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    match /events/{eventId} {
+      allow create: if isAdmin() && isValidId(eventId) && isValidEvent(incoming());
+      
+      allow update: if isAdmin() && isValidEvent(incoming()) && (
+        incoming().id == existing().id &&
+        incoming().diff(existing()).affectedKeys().hasAny(['title', 'content', 'location', 'date', 'category', 'image', 'video', 'excerpt'])
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // Default deny at the bottom
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

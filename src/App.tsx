@@ -26,7 +26,18 @@ import {
   Bell,
   BellRing,
   Languages,
-  Calendar
+  Calendar,
+  Lock,
+  Plus,
+  Trash,
+  Edit3,
+  Save,
+  FileText,
+  LogOut,
+  LayoutDashboard,
+  Settings,
+  Copy,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence, useScroll, useSpring } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -35,6 +46,9 @@ import { fr } from 'date-fns/locale';
 import { MOCK_ARTICLES, MOCK_EVENTS } from './constants';
 import { Article, Comment, Event } from './types';
 import { cn, optimizeImage } from './lib/utils';
+import { AdminLogin, AdminDashboard, AdminEditor, ExportModal } from './components/Admin';
+import { FirestoreService, signInWithGoogle, auth } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // --- Components ---
 
@@ -619,8 +633,28 @@ const SplashScreen = ({ isDarkMode }: { isDarkMode: boolean }) => {
 };
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event' | 'all-events'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'article' | 'search' | 'donate' | 'about' | 'privacy' | 'terms' | 'contact' | 'cookies' | 'event' | 'all-events' | 'admin' | 'admin-login'>('home');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [adminArticles, setAdminArticles] = useState<Article[]>(() => {
+    try {
+      const saved = localStorage.getItem('akwaba_admin_articles');
+      return saved ? JSON.parse(saved) : MOCK_ARTICLES;
+    } catch {
+      return MOCK_ARTICLES;
+    }
+  });
+  const [adminEvents, setAdminEvents] = useState<Event[]>(() => {
+    try {
+      const saved = localStorage.getItem('akwaba_admin_events');
+      return saved ? JSON.parse(saved) : MOCK_EVENTS;
+    } catch {
+      return MOCK_EVENTS;
+    }
+  });
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isCloudLoaded, setIsCloudLoaded] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [activeCategory, setActiveCategory] = useState('À la une');
   const [searchQuery, setSearchQuery] = useState('');
@@ -632,6 +666,8 @@ export default function App() {
   const [selectedPayment, setSelectedPayment] = useState<'mobile' | 'card'>('mobile');
   const [donationSuccess, setDonationSuccess] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [adminClickCount, setAdminClickCount] = useState(0);
   
   // New features state
   const [showFilters, setShowFilters] = useState(false);
@@ -674,6 +710,132 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('akwaba_user_likes', JSON.stringify(Array.from(userLikedArticles)));
   }, [userLikedArticles]);
+
+  useEffect(() => {
+    localStorage.setItem('akwaba_admin_articles', JSON.stringify(adminArticles));
+  }, [adminArticles]);
+
+  useEffect(() => {
+    localStorage.setItem('akwaba_admin_events', JSON.stringify(adminEvents));
+  }, [adminEvents]);
+
+  // Firebase Real-time Auth & Data Sync
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user && user.email === 'akwabanewsinfo@gmail.com') {
+        setIsAdminAuthenticated(true);
+      } else {
+        setIsAdminAuthenticated(false);
+      }
+    });
+
+    // Initial Data Fetch
+    const fetchData = async () => {
+      try {
+        const [cloudArticles, cloudEvents] = await Promise.all([
+          FirestoreService.getArticles(),
+          FirestoreService.getEvents()
+        ]);
+        
+        if (cloudArticles.length > 0) setAdminArticles(cloudArticles);
+        if (cloudEvents.length > 0) setAdminEvents(cloudEvents);
+        setIsCloudLoaded(true);
+      } catch (error) {
+        console.error("Error fetching cloud data:", error);
+      }
+    };
+    fetchData();
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleAdminLogin = async () => {
+    try {
+      const user = await signInWithGoogle();
+      if (user && user.email === 'akwabanewsinfo@gmail.com') {
+        setIsAdminAuthenticated(true);
+        setCurrentView('admin');
+        setActiveNotification("Connexion réussie !");
+      } else {
+        alert(`Accès refusé : L'email ${user?.email} n'est pas autorisé.`);
+        await auth.signOut();
+      }
+    } catch (error: any) {
+      console.error("Login Error:", error);
+      if (error.code === 'auth/unauthorized-domain') {
+        alert("Erreur Firebase : Ce domaine n'est pas autorisé. \n\nVous devez aller dans la console Firebase > Authentication > Paramètres > Domaines autorisés et ajouter l'adresse de ce site.");
+      } else if (error.code === 'auth/popup-blocked') {
+        alert("Le navigateur a bloqué la fenêtre de connexion. Veuillez autoriser les popups pour ce site.");
+      } else {
+        alert("Erreur lors de la connexion : " + (error.message || "Erreur inconnue"));
+      }
+    }
+  };
+
+  const handleSaveArticle = async (article: Partial<Article>) => {
+    try {
+      const art = article as Article;
+      await FirestoreService.saveArticle(art);
+      const isNew = !adminArticles.find(a => a.id === art.id);
+      if (isNew) {
+        setAdminArticles([art, ...adminArticles]);
+      } else {
+        setAdminArticles(adminArticles.map(a => a.id === art.id ? art : a));
+      }
+      setEditingArticle(null);
+    } catch (error) {
+      console.error("Error saving article:", error);
+      alert("Erreur lors de la sauvegarde sur le Cloud. Vérifiez vos permissions.");
+    }
+  };
+
+  const handleDeleteArticle = async (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet article du Cloud ?')) {
+      try {
+        await FirestoreService.deleteArticle(id);
+        setAdminArticles(adminArticles.filter(a => a.id !== id));
+      } catch (error) {
+        console.error("Error deleting article:", error);
+      }
+    }
+  };
+
+  const handleSaveEvent = async (event: Partial<Event>) => {
+    try {
+      const ev = event as Event;
+      await FirestoreService.saveEvent(ev);
+      const isNew = !adminEvents.find(e => e.id === ev.id);
+      if (isNew) {
+        setAdminEvents([ev, ...adminEvents]);
+      } else {
+        setAdminEvents(adminEvents.map(e => e.id === ev.id ? ev : e));
+      }
+      setEditingEvent(null);
+    } catch (error) {
+      console.error("Error saving event:", error);
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet événement du Cloud ?')) {
+      try {
+        await FirestoreService.deleteEvent(id);
+        setAdminEvents(adminEvents.filter(e => e.id !== id));
+      } catch (error) {
+        console.error("Error deleting event:", error);
+      }
+    }
+  };
+
+  const handleAdminLogout = async () => {
+    try {
+      await auth.signOut();
+      setIsAdminAuthenticated(false);
+      setCurrentView('home');
+    } catch (error) {
+      console.error("Logout Error:", error);
+    }
+  };
 
   const handleAddComment = (articleId: string, parentCommentId?: string) => {
     if (!newCommentText.trim() || !commentAuthorName.trim()) return;
@@ -812,9 +974,12 @@ export default function App() {
 
   const categories = ['À la une', 'Urgent', 'Politique', 'Économie', 'Science', 'Santé', 'Culture', 'Histoire', 'Sport'];
 
+  const visibleArticles = adminArticles;
+  const visibleEvents = adminEvents;
+
   const filteredArticles = activeCategory === 'À la une' 
-    ? MOCK_ARTICLES 
-    : MOCK_ARTICLES.filter(a => a.category === activeCategory);
+    ? visibleArticles 
+    : visibleArticles.filter(a => a.category === activeCategory);
 
   const handleArticleClick = (article: Article) => {
     setSelectedArticle(article);
@@ -869,7 +1034,7 @@ export default function App() {
     "Monde : Sommet extraordinaire de l'Union Africaine sur la sécurité alimentaire prévu le mois prochain."
   ];
 
-  const trendingArticles = [...MOCK_ARTICLES]
+  const trendingArticles = [...adminArticles]
     .filter(article => {
       const articleDate = new Date(article.date);
       const now = new Date();
@@ -1186,10 +1351,10 @@ export default function App() {
               </div>
 
               {/* Hero Section */}
-              {activeCategory === 'À la une' && MOCK_ARTICLES.length > 0 && (
+              {activeCategory === 'À la une' && visibleArticles.length > 0 && (
                 <section className="space-y-10">
                   <HeroSlideshow 
-                    articles={MOCK_ARTICLES.slice(0, 3)} 
+                    articles={visibleArticles.slice(0, 3)} 
                     onArticleClick={handleArticleClick} 
                   />
                   
@@ -1271,7 +1436,7 @@ export default function App() {
               </section>
 
               <EventSection 
-                events={MOCK_EVENTS} 
+                events={visibleEvents} 
                 onEventClick={handleEventClick} 
                 onSeeAll={() => navigateTo('all-events')}
               />
@@ -2178,7 +2343,52 @@ Dernière mise à jour : Avril 2026
 `}</ReactMarkdown>
               </div>
             </motion.div>
+          ) : currentView === 'admin-login' ? (
+            <AdminLogin onLogin={handleAdminLogin} />
+          ) : currentView === 'admin' ? (
+            isAdminAuthenticated ? (
+              editingArticle ? (
+                <AdminEditor 
+                  type="article"
+                  data={editingArticle} 
+                  onSave={handleSaveArticle} 
+                  onCancel={() => setEditingArticle(null)} 
+                />
+              ) : editingEvent ? (
+                <AdminEditor 
+                  type="event"
+                  data={editingEvent} 
+                  onSave={handleSaveEvent} 
+                  onCancel={() => setEditingEvent(null)} 
+                />
+              ) : (
+                <AdminDashboard 
+                  articles={adminArticles}
+                  events={adminEvents}
+                  onEditArticle={(a) => setEditingArticle(a)}
+                  onEditEvent={(e) => setEditingEvent(e)}
+                  onCreateArticle={() => setEditingArticle({ id: Date.now().toString(), date: new Date().toISOString().split('T')[0] } as any)}
+                  onCreateEvent={() => setEditingEvent({ id: Date.now().toString(), date: new Date().toISOString().split('T')[0] } as any)}
+                  onDeleteArticle={handleDeleteArticle}
+                  onDeleteEvent={handleDeleteEvent}
+                  onLogout={handleAdminLogout}
+                  onGenerateCode={() => setShowExportModal(true)}
+                />
+              )
+            ) : (
+              <AdminLogin onLogin={handleAdminLogin} />
+            )
           ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showExportModal && (
+            <ExportModal 
+              articles={adminArticles} 
+              events={adminEvents}
+              onClose={() => setShowExportModal(false)} 
+            />
+          )}
         </AnimatePresence>
       </main>
 
@@ -2238,7 +2448,32 @@ Dernière mise à jour : Avril 2026
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-slate-100 text-center text-xs text-slate-400">
-          © 2026 Akwaba Info. Tous droits réservés. Développé avec passion en Afrique.
+          <div 
+            onClick={() => {
+              const newCount = adminClickCount + 1;
+              if (newCount >= 5) {
+                if (isAdminAuthenticated) {
+                  setCurrentView('admin');
+                  setActiveNotification("Mode Admin : Bonjour !");
+                } else {
+                  setCurrentView('admin-login');
+                  setActiveNotification("Mode Admin : Authentification requise.");
+                }
+                setAdminClickCount(0);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                setTimeout(() => setActiveNotification(null), 3000);
+              } else {
+                setAdminClickCount(newCount);
+              }
+            }}
+            className="cursor-pointer py-4 select-none"
+            title="Accès réservé"
+          >
+            © 2026 Akwaba Info. Tous droits réservés. Développé avec passion en Afrique.
+            {adminClickCount > 0 && adminClickCount < 5 && (
+              <span className="ml-2 opacity-50">({adminClickCount}/5)</span>
+            )}
+          </div>
         </div>
       </footer>
 
