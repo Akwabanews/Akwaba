@@ -762,15 +762,18 @@ export default function App() {
         return;
       }
 
-      if (!user.email) {
-        alert("Google n'a pas transmis votre adresse email. Veuillez réessayer ou vérifier les paramètres de votre compte Google.");
+      // Fallback: Si user.email est null, on cherche dans les données du fournisseur
+      const userEmail = user.email || (user.providerData && user.providerData[0]?.email);
+
+      if (!userEmail) {
+        alert("Google n'a pas transmis votre adresse email. Veuillez réessayer ou vérifier que votre compte Google autorise le partage de l'email.");
         await auth.signOut();
         return;
       }
 
-      console.log("Tentative de connexion avec :", user.email);
+      console.log("Tentative de connexion avec :", userEmail);
 
-      if (user.email === 'akwabanewsinfo@gmail.com') {
+      if (userEmail === 'akwabanewsinfo@gmail.com') {
         setIsAdminAuthenticated(true);
         setCurrentView('admin');
         setActiveNotification("Connexion réussie !");
